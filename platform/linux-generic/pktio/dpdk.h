@@ -52,6 +52,10 @@ typedef struct {
 	odp_pktio_capability_t	capa;	  /**< interface capabilities */
 	uint32_t data_room;		  /**< maximum packet length */
 	uint16_t mtu;			  /**< maximum transmission unit */
+	unsigned num_in_queues;		  /**< num input queues */
+	unsigned num_out_queues;	  /**< num output queues */
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_pktout_config_opt_t pktout_cfg; /**< pkt out config */
 	/** Use system call to get/set vdev promisc mode */
 	odp_bool_t vdev_sysc_promisc;
 	uint8_t port_id;		  /**< DPDK port identifier */

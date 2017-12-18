@@ -167,8 +167,7 @@ static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
 	struct ring *ring;
 	int ret;
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp)
+	if (pkt_sock->pktin_cfg.bit.ts_all || pkt_sock->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
 
 	ring  = &pkt_sock->rx_ring;
@@ -698,6 +697,17 @@ static int sock_mmap_capability(pktio_entry_t *pktio_entry ODP_UNUSED,
 	return 0;
 }
 
+static int sock_mmap_config(pktio_entry_t *pktio_entry,
+			    const odp_pktio_config_t *p)
+{
+	pktio_ops_socket_mmap_data_t *pkt_sock = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_sock->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int sock_mmap_stats(pktio_entry_t *pktio_entry,
 			   odp_pktio_stats_t *stats)
 {
@@ -763,7 +773,7 @@ static pktio_ops_module_t socket_mmap_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = sock_mmap_link_status,
 	.capability = sock_mmap_capability,
-	.config = NULL,
+	.config = sock_mmap_config,
 	.input_queues_config = NULL,
 	.output_queues_config = NULL,
 	.print = NULL,

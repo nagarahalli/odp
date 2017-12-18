@@ -17,6 +17,7 @@ typedef struct {
 	unsigned char if_mac[ETH_ALEN];	/**< MAC address of pktio side (not a
 					     MAC address of kernel interface)*/
 	odp_pool_t pool;		/**< pool to alloc packets from */
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 } pktio_ops_tap_data_t;
 
 #endif

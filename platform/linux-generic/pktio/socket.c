@@ -284,8 +284,7 @@ static int sock_mmsg_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 	odp_ticketlock_lock(&pktio_entry->s.rxl);
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp)
+	if (pkt_sock->pktin_cfg.bit.ts_all || pkt_sock->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
 
 	memset(msgvec, 0, sizeof(msgvec));
@@ -479,6 +478,17 @@ static int sock_link_status(pktio_entry_t *pktio_entry)
 			      pktio_entry->s.name);
 }
 
+static int sock_config(pktio_entry_t *pktio_entry,
+		       const odp_pktio_config_t *p)
+{
+	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_sock->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int sock_capability(pktio_entry_t *pktio_entry ODP_UNUSED,
 			   odp_pktio_capability_t *capa)
 {
@@ -558,7 +568,7 @@ static pktio_ops_module_t socket_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = sock_link_status,
 	.capability = sock_capability,
-	.config = NULL,
+	.config = sock_config,
 	.input_queues_config = NULL,
 	.output_queues_config = NULL,
 	.print = NULL,

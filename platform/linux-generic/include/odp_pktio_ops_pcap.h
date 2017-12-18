@@ -20,6 +20,7 @@ typedef struct {
 	int loops;		/**< number of times to loop rx pcap */
 	int loop_cnt;		/**< number of loops completed */
 	odp_bool_t promisc;	/**< promiscuous mode state */
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 } pktio_ops_pcap_data_t;
 
 #endif

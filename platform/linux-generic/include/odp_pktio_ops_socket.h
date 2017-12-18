@@ -42,6 +42,7 @@ typedef struct {
 	odp_pool_t pool; /**< pool to alloc packets from */
 	uint32_t mtu;    /**< maximum transmission unit */
 	unsigned char if_mac[ETH_ALEN];	/**< IF eth mac addr */
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 } pktio_ops_socket_data_t;
 
 /** packet mmap ring */
@@ -79,6 +80,7 @@ typedef struct {
 	unsigned char if_mac[ETH_ALEN];
 	struct sockaddr_ll ll;
 	int fanout;
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 } pktio_ops_socket_mmap_data_t;
 
 static inline void

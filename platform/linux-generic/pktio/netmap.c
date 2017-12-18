@@ -134,6 +134,17 @@ static inline void map_netmap_rings(netmap_ring_t *rings,
 	}
 }
 
+static int netmap_config(pktio_entry_t *pktio_entry,
+			 const odp_pktio_config_t *p)
+{
+	pktio_ops_netmap_data_t *pkt_nm = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_nm->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int netmap_input_queues_config(pktio_entry_t *pktio_entry,
 				      const odp_pktin_queue_param_t *p)
 {
@@ -716,9 +727,9 @@ static inline int netmap_recv_desc(pktio_entry_t *pktio_entry,
 	int ring_id = desc->cur_rx_ring;
 	int num_rx = 0;
 	int num_rings = desc->last_rx_ring - desc->first_rx_ring + 1;
+	pktio_ops_netmap_data_t *pkt_nm = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp)
+	if (pkt_nm->pktin_cfg.bit.ts_all || pkt_nm->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
 
 	for (i = 0; i < num_rings && num_rx != num; i++) {
@@ -1004,7 +1015,7 @@ static pktio_ops_module_t netmap_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = netmap_link_status,
 	.capability = netmap_capability,
-	.config = NULL,
+	.config = netmap_config,
 	.input_queues_config = netmap_input_queues_config,
 	.output_queues_config = netmap_output_queues_config,
 	.print = netmap_print,

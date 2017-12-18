@@ -234,8 +234,7 @@ static int pcapif_recv_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		odp_ticketlock_unlock(&pktio_entry->s.rxl);
 		return 0;
 	}
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp)
+	if (pcap->pktin_cfg.bit.ts_all || pcap->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
 
 	for (i = 0; i < len; ) {
@@ -370,6 +369,17 @@ static int pcapif_capability(pktio_entry_t *pktio_entry ODP_UNUSED,
 	return 0;
 }
 
+static int pcapif_config(pktio_entry_t *pktio_entry,
+			 const odp_pktio_config_t *p)
+{
+	pktio_ops_pcap_data_t *pcap = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pcap->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int pcapif_promisc_mode_set(pktio_entry_t *pktio_entry,
 				   odp_bool_t enable)
 {
@@ -464,7 +474,7 @@ static pktio_ops_module_t pcap_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = NULL,
 	.capability = pcapif_capability,
-	.config = NULL,
+	.config = pcapif_config,
 	.input_queues_config = NULL,
 	.output_queues_config = NULL,
 	.print = NULL,

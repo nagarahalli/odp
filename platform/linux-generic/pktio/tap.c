@@ -322,8 +322,7 @@ static int tap_pktio_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 	odp_ticketlock_lock(&pktio_entry->s.rxl);
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp)
+	if (tap->pktin_cfg.bit.ts_all || tap->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
 
 	for (i = 0; i < len; i++) {
@@ -484,6 +483,17 @@ static int tap_capability(pktio_entry_t *pktio_entry ODP_UNUSED,
 	return 0;
 }
 
+static int tap_config(pktio_entry_t *pktio_entry,
+		      const odp_pktio_config_t *p)
+{
+	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	tap->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static pktio_ops_module_t tap_pktio_ops = {
 	.base = {
 		.name = "tap",
@@ -509,7 +519,7 @@ static pktio_ops_module_t tap_pktio_ops = {
 	.mac_set = tap_mac_addr_set,
 	.link_status = tap_link_status,
 	.capability = tap_capability,
-	.config = NULL,
+	.config = tap_config,
 	.input_queues_config = NULL,
 	.output_queues_config = NULL,
 	.print = NULL,

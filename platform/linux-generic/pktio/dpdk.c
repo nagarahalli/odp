@@ -391,7 +391,7 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 	int i, j;
 	int nb_pkts = 0;
 	int alloc_len, num;
-	odp_pktin_config_opt_t *pktin_cfg = &pktio_entry->s.config.pktin;
+	odp_pktin_config_opt_t *pktin_cfg = &pkt_dpdk->pktin_cfg;
 	odp_pool_t pool = pkt_dpdk->pool;
 
 	/* Allocate maximum sized packets */
@@ -616,8 +616,8 @@ static inline int mbuf_to_pkt_zero(pktio_entry_t *pktio_entry,
 	void *data;
 	int i;
 	int nb_pkts = 0;
-	odp_pktin_config_opt_t *pktin_cfg = &pktio_entry->s.config.pktin;
 	odp_pool_t pool = pkt_dpdk->pool;
+	odp_pktin_config_opt_t *pktin_cfg = &pkt_dpdk->pktin_cfg;
 
 	for (i = 0; i < mbuf_num; i++) {
 		odp_packet_hdr_t parsed_hdr;
@@ -871,6 +871,7 @@ static int dpdk_setup_port(pktio_entry_t *pktio_entry)
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	struct rte_eth_rss_conf rss_conf;
 	uint16_t hw_ip_checksum = 0;
+	odp_pktin_config_opt_t *pktin_cfg = &pkt_dpdk->pktin_cfg;
 
 	/* Always set some hash functions to enable DPDK RSS hash calculation */
 	if (pkt_dpdk->hash.all_bits == 0) {
@@ -880,9 +881,9 @@ static int dpdk_setup_port(pktio_entry_t *pktio_entry)
 		rss_conf_to_hash_proto(&rss_conf, &pkt_dpdk->hash);
 	}
 
-	if (pktio_entry->s.config.pktin.bit.ipv4_chksum ||
-	    pktio_entry->s.config.pktin.bit.udp_chksum ||
-	    pktio_entry->s.config.pktin.bit.tcp_chksum)
+	if (pktin_cfg->bit.ipv4_chksum ||
+	    pktin_cfg->bit.udp_chksum ||
+	    pktin_cfg->bit.tcp_chksum)
 		hw_ip_checksum = 1;
 
 	struct rte_eth_conf port_conf = {
@@ -1075,6 +1076,18 @@ static int dpdk_pktio_term(void)
 
 	if (!ODP_DPDK_ZERO_COPY)
 		rte_mempool_walk(dpdk_mempool_free, NULL);
+
+	return 0;
+}
+
+static int dpdk_config(pktio_entry_t *pktio_entry,
+		       const odp_pktio_config_t *p)
+{
+	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_dpdk->pktin_cfg = p->pktin;
+	pkt_dpdk->pktout_cfg = p->pktout;
 
 	return 0;
 }
@@ -1430,8 +1443,8 @@ static int dpdk_recv(pktio_entry_t *pktio_entry, int index,
 		odp_ticketlock_unlock(&pkt_dpdk->rx_lock[index]);
 
 	if (nb_rx > 0) {
-		if (pktio_entry->s.config.pktin.bit.ts_all ||
-		    pktio_entry->s.config.pktin.bit.ts_ptp) {
+		if (pkt_dpdk->pktin_cfg.bit.ts_all ||
+		    pkt_dpdk->pktin_cfg.bit.ts_ptp) {
 			ts_val = odp_time_global();
 			ts = &ts_val;
 		}
@@ -1628,7 +1641,7 @@ static pktio_ops_module_t dpdk_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = dpdk_link_status,
 	.capability = dpdk_capability,
-	.config = NULL,
+	.config = dpdk_config,
 	.input_queues_config = dpdk_input_queues_config,
 	.output_queues_config = dpdk_output_queues_config,
 	.print = NULL,

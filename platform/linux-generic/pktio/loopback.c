@@ -98,8 +98,7 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	queue = queue_fn->from_ext(pkt_lbk->loopq);
 	nbr = queue_fn->deq_multi(queue, hdr_tbl, len);
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp) {
+	if (pkt_lbk->pktin_cfg.bit.ts_all || pkt_lbk->pktin_cfg.bit.ts_ptp) {
 		ts_val = odp_time_global();
 		ts = &ts_val;
 	}
@@ -248,6 +247,17 @@ static int loopback_link_status(pktio_entry_t *pktio_entry ODP_UNUSED)
 	return 1;
 }
 
+static int loopback_config(pktio_entry_t *pktio_entry,
+			   const odp_pktio_config_t *p)
+{
+	pktio_ops_loopback_data_t *pkt_lbk = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_lbk->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int loopback_capability(pktio_entry_t *pktio_entry ODP_UNUSED,
 			       odp_pktio_capability_t *capa)
 {
@@ -326,7 +336,7 @@ static pktio_ops_module_t loopback_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = loopback_link_status,
 	.capability = loopback_capability,
-	.config = NULL,
+	.config = loopback_config,
 	.input_queues_config = NULL,
 	.output_queues_config = NULL,
 	.print = NULL,
