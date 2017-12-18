@@ -96,6 +96,17 @@ static void _dpdk_print_port_mac(uint8_t portid)
 		eth_addr.addr_bytes[5]);
 }
 
+static int config_pkt_dpdk(pktio_entry_t *pktio_entry,
+			   const odp_pktio_config_t *p)
+{
+	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
+
+	/* Copy the configuration into pkt I/O structure. */
+	pkt_dpdk->pktin_cfg = p->pktin;
+
+	return 0;
+}
+
 static int input_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
 					const odp_pktin_queue_param_t *p)
 {
@@ -382,8 +393,7 @@ static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 				 (struct rte_mbuf **)pkt_table,
 				 (uint16_t)RTE_MAX(len, min));
 
-	if (pktio_entry->s.config.pktin.bit.ts_all ||
-	    pktio_entry->s.config.pktin.bit.ts_ptp) {
+	if (pkt_dpdk->pktin_cfg.bit.ts_all || pkt_dpdk->pktin_cfg.bit.ts_ptp) {
 		ts_val = odp_time_global();
 		ts = &ts_val;
 	}
@@ -733,7 +743,7 @@ static pktio_ops_module_t dpdk_pktio_ops = {
 	.mac_set = NULL,
 	.link_status = link_status_pkt_dpdk,
 	.capability = capability_pkt_dpdk,
-	.config = NULL,
+	.config = config_pkt_dpdk,
 	.input_queues_config = input_queues_config_pkt_dpdk,
 	.output_queues_config = output_queues_config_pkt_dpdk,
 	.recv = recv_pkt_dpdk,

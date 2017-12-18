@@ -51,6 +51,10 @@
 /** Packet socket using dpdk mmaped rings for both Rx and Tx */
 typedef struct {
 	odp_pktio_capability_t capa;	/**< interface capabilities */
+	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_pool_t pool;		/**< pool to use in this pkt I/O */
+	int num_in_queues;		/**< num input queues */
+	int num_out_queues;		/**< num output queues */
 
 	/********************************/
 	char ifname[32];
