@@ -54,6 +54,8 @@ typedef struct {
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 	odp_bool_t is_virtual;		/**< nm virtual port (VALE/pipe) */
 	odp_pktio_capability_t	capa;	/**< interface capabilities */
+	unsigned num_in_queues;		/**< number of input queues */
+	unsigned num_out_queues;	/**< number of output queues */
 	uint32_t num_rx_rings;		/**< number of nm rx rings */
 	uint32_t num_tx_rings;		/**< number of nm tx rings */
 	unsigned num_rx_desc_rings;	/**< number of rx descriptor rings */

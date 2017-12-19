@@ -1375,7 +1375,8 @@ int odp_pktin_queue_config(odp_pktio_t pktio,
 	entry->s.num_in_queue = num_queues;
 
 	if (entry->s.ops->input_queues_config)
-		return entry->s.ops->input_queues_config(entry, param);
+		return entry->s.ops->input_queues_config(entry,
+							 param, num_queues);
 
 	return 0;
 }
@@ -1492,7 +1493,8 @@ int odp_pktout_queue_config(odp_pktio_t pktio,
 	}
 
 	if (entry->s.ops->output_queues_config)
-		return entry->s.ops->output_queues_config(entry, param);
+		return entry->s.ops->output_queues_config(entry,
+							  param, num_queues);
 
 	return 0;
 }

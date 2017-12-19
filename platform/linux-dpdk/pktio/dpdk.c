@@ -108,7 +108,8 @@ static int config_pkt_dpdk(pktio_entry_t *pktio_entry,
 }
 
 static int input_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
-					const odp_pktin_queue_param_t *p)
+					const odp_pktin_queue_param_t *p,
+					int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	odp_pktin_mode_t mode = pktio_entry->s.param.in_mode;
@@ -133,11 +134,18 @@ static int input_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
 		pkt_dpdk->hash.proto.ipv6 = 1;
 	}
 
+	/* DPDK doesn't support nb_rx_q being 0 */
+	if (!num_queues)
+		pkt_dpdk->num_in_queues = 1;
+	else
+		pkt_dpdk->num_in_queues = num_queues;
+
 	return 0;
 }
 
 static int output_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
-					 const odp_pktout_queue_param_t *p)
+					 const odp_pktout_queue_param_t *p,
+					 int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 
@@ -145,6 +153,12 @@ static int output_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
 		pkt_dpdk->lockless_tx = 1;
 	else
 		pkt_dpdk->lockless_tx = 0;
+
+	/* DPDK doesn't support nb_tx_q being 0 */
+	if (!num_queues)
+		pkt_dpdk->num_out_queues = 1;
+	else
+		pkt_dpdk->num_out_queues = num_queues;
 
 	return 0;
 }
@@ -232,10 +246,10 @@ static int start_pkt_dpdk(pktio_entry_t *pktio_entry)
 	struct rte_eth_rss_conf rss_conf;
 
 	/* DPDK doesn't support nb_rx_q/nb_tx_q being 0 */
-	if (!pktio_entry->s.num_in_queue)
-		pktio_entry->s.num_in_queue = 1;
-	if (!pktio_entry->s.num_out_queue)
-		pktio_entry->s.num_out_queue = 1;
+	if (!pkt_dpdk->num_in_queues)
+		pkt_dpdk->num_in_queues = 1;
+	if (!pkt_dpdk->num_out_queues)
+		pkt_dpdk->num_out_queues = 1;
 
 	rss_conf_to_hash_proto(&rss_conf, &pkt_dpdk->hash);
 
@@ -264,8 +278,8 @@ static int start_pkt_dpdk(pktio_entry_t *pktio_entry)
 		rte_pktmbuf_data_room_size(pool_entry_dp->rte_mempool) -
 		2 * 4 - RTE_PKTMBUF_HEADROOM;
 
-	nbtxq = pktio_entry->s.num_out_queue;
-	nbrxq = pktio_entry->s.num_in_queue;
+	nbtxq = pkt_dpdk->num_out_queues;
+	nbrxq = pkt_dpdk->num_in_queues;
 
 	ret = rte_eth_dev_configure(portid, nbrxq, nbtxq, &port_conf);
 	if (ret < 0) {
@@ -340,14 +354,14 @@ static int send_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 static void _odp_pktio_send_completion(pktio_entry_t *pktio_entry)
 {
 	int i;
-	unsigned j;
+	int j;
 	odp_packet_t dummy;
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	pool_entry_dp_t *pool_entry_dp =
 			odp_pool_to_entry_dp(pkt_dpdk->pool);
 	struct rte_mempool *rte_mempool = pool_entry_dp->rte_mempool;
 
-	for (j = 0; j < pktio_entry->s.num_out_queue; j++)
+	for (j = 0; j < pkt_dpdk->num_out_queues; j++)
 		send_pkt_dpdk(pktio_entry, j, &dummy, 0);
 
 	for (i = 0; i < ODP_CONFIG_PKTIO_ENTRIES; ++i) {
@@ -362,7 +376,7 @@ static void _odp_pktio_send_completion(pktio_entry_t *pktio_entry)
 		if (odp_ticketlock_trylock(&entry->s.txl)) {
 			if (entry->s.state != PKTIO_STATE_FREE &&
 			    entry->s.ops == &dpdk_pktio_ops) {
-				for (j = 0; j < pktio_entry->s.num_out_queue;
+				for (j = 0; j < pkt_dpdk->num_out_queues;
 				     j++)
 					send_pkt_dpdk(pktio_entry, j,
 						      &dummy, 0);

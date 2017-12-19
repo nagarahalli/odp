@@ -49,9 +49,9 @@ ODP_SUBSYSTEM_API(pktio_ops, int, capability, pktio_entry_t *,
 ODP_SUBSYSTEM_API(pktio_ops, int, config, pktio_entry_t *,
 		  const odp_pktio_config_t *);
 ODP_SUBSYSTEM_API(pktio_ops, int, input_queues_config,
-		  pktio_entry_t *, const odp_pktin_queue_param_t *);
+		  pktio_entry_t *, const odp_pktin_queue_param_t *, int);
 ODP_SUBSYSTEM_API(pktio_ops, int, output_queues_config,
-		  pktio_entry_t *, const odp_pktout_queue_param_t *);
+		  pktio_entry_t *, const odp_pktout_queue_param_t *, int);
 ODP_SUBSYSTEM_API(pktio_ops, void, print, pktio_entry_t *);
 
 /* Declare subsystem init and term routines */

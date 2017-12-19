@@ -905,8 +905,8 @@ static int dpdk_setup_port(pktio_entry_t *pktio_entry)
 	};
 
 	ret = rte_eth_dev_configure(pkt_dpdk->port_id,
-				    pktio_entry->s.num_in_queue,
-				    pktio_entry->s.num_out_queue, &port_conf);
+				    pkt_dpdk->num_in_queues,
+				    pkt_dpdk->num_out_queues, &port_conf);
 	if (ret < 0) {
 		ODP_ERR("Failed to setup device: err=%d, port=%" PRIu8 "\n",
 			ret, pkt_dpdk->port_id);
@@ -1093,7 +1093,8 @@ static int dpdk_config(pktio_entry_t *pktio_entry,
 }
 
 static int dpdk_input_queues_config(pktio_entry_t *pktio_entry,
-				    const odp_pktin_queue_param_t *p)
+				    const odp_pktin_queue_param_t *p,
+				    int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	odp_pktin_mode_t mode = pktio_entry->s.param.in_mode;
@@ -1113,11 +1114,18 @@ static int dpdk_input_queues_config(pktio_entry_t *pktio_entry,
 
 	pkt_dpdk->lockless_rx = lockless;
 
+	/* DPDK doesn't support nb_rx_q being 0 */
+	if (!num_queues)
+		pkt_dpdk->num_in_queues = 1;
+	else
+		pkt_dpdk->num_in_queues = num_queues;
+
 	return 0;
 }
 
 static int dpdk_output_queues_config(pktio_entry_t *pktio_entry,
-				     const odp_pktout_queue_param_t *p)
+				     const odp_pktout_queue_param_t *p,
+				     int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	odp_bool_t lockless;
@@ -1128,6 +1136,12 @@ static int dpdk_output_queues_config(pktio_entry_t *pktio_entry,
 		lockless = 0;
 
 	pkt_dpdk->lockless_tx = lockless;
+
+	/* DPDK doesn't support nb_tx_q being 0 */
+	if (!num_queues)
+		pkt_dpdk->num_out_queues = 1;
+	else
+		pkt_dpdk->num_out_queues = num_queues;
 
 	return 0;
 }
@@ -1333,10 +1347,10 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 	unsigned i;
 
 	/* DPDK doesn't support nb_rx_q/nb_tx_q being 0 */
-	if (!pktio_entry->s.num_in_queue)
-		pktio_entry->s.num_in_queue = 1;
-	if (!pktio_entry->s.num_out_queue)
-		pktio_entry->s.num_out_queue = 1;
+	if (!pkt_dpdk->num_in_queues)
+		pkt_dpdk->num_in_queues = 1;
+	if (!pkt_dpdk->num_out_queues)
+		pkt_dpdk->num_out_queues = 1;
 
 	/* init port */
 	if (dpdk_setup_port(pktio_entry)) {
@@ -1344,7 +1358,7 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 		return -1;
 	}
 	/* Init TX queues */
-	for (i = 0; i < pktio_entry->s.num_out_queue; i++) {
+	for (i = 0; i < pkt_dpdk->num_out_queues; i++) {
 		ret = rte_eth_tx_queue_setup(port_id, i, DPDK_NM_TX_DESC,
 					     rte_eth_dev_socket_id(port_id),
 					     NULL);
@@ -1355,7 +1369,7 @@ static int dpdk_start(pktio_entry_t *pktio_entry)
 		}
 	}
 	/* Init RX queues */
-	for (i = 0; i < pktio_entry->s.num_in_queue; i++) {
+	for (i = 0; i < pkt_dpdk->num_in_queues; i++) {
 		ret = rte_eth_rx_queue_setup(port_id, i, DPDK_NM_RX_DESC,
 					     rte_eth_dev_socket_id(port_id),
 					     NULL, pkt_dpdk->pkt_pool);
