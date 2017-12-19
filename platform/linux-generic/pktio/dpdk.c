@@ -434,13 +434,8 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 		if (odp_packet_copy_from_mem(pkt, 0, pkt_len, data) != 0)
 			goto fail;
 
-		pkt_hdr->input = pktio_entry->s.handle;
-
 		if (pktio_cls_enabled(pktio_entry))
 			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
-		else
-			packet_parse_layer(pkt_hdr,
-					   pktio_entry->s.config.parser.layer);
 
 		if (mbuf->ol_flags & PKT_RX_RSS_HASH)
 			odp_packet_flow_hash_set(pkt, mbuf->hash.rss);
@@ -650,13 +645,9 @@ static inline int mbuf_to_pkt_zero(pktio_entry_t *pktio_entry,
 		pkt_hdr->buf_hdr.seg[0].data = data;
 
 		packet_init(pkt_hdr, pkt_len);
-		pkt_hdr->input = pktio_entry->s.handle;
 
 		if (pktio_cls_enabled(pktio_entry))
 			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
-		else
-			packet_parse_layer(pkt_hdr,
-					   pktio_entry->s.config.parser.layer);
 
 		if (mbuf->ol_flags & PKT_RX_RSS_HASH)
 			odp_packet_flow_hash_set(pkt, mbuf->hash.rss);

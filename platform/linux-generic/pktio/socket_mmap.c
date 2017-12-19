@@ -232,13 +232,9 @@ static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
 			frame_num = next_frame_num;
 			continue;
 		}
-		hdr->input = pktio_entry->s.handle;
 
 		if (pktio_cls_enabled(pktio_entry))
 			copy_packet_cls_metadata(&parsed_hdr, hdr);
-		else
-			packet_parse_layer(hdr,
-					   pktio_entry->s.config.parser.layer);
 
 		packet_set_ts(hdr, ts);
 

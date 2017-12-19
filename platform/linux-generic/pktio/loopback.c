@@ -151,13 +151,9 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 				}
 				pkt = new_pkt;
 			}
-		} else {
-			packet_parse_layer(pkt_hdr,
-					   pktio_entry->s.config.parser.layer);
 		}
 
 		packet_set_ts(pkt_hdr, ts);
-		pkt_hdr->input = pktio_entry->s.handle;
 
 		pktio_entry->s.stats.in_octets += pkt_len;
 		pkts[num_rx++] = pkt;
