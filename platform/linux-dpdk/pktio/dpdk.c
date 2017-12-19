@@ -210,8 +210,7 @@ static int close_pkt_dpdk(pktio_entry_t *pktio_entry)
 {
 	const pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.state == PKTIO_STATE_STOPPED)
-		rte_eth_dev_close(pkt_dpdk->portid);
+	rte_eth_dev_close(pkt_dpdk->portid);
 
 	return ODP_OPS_DATA_FREE(pktio_entry->s.ops_data);
 }
