@@ -152,7 +152,7 @@ static int output_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
 static int setup_pkt_dpdk(odp_pktio_t pktio ODP_UNUSED,
 			  pktio_entry_t *pktio_entry,
 			  const char *netdev,
-			  odp_pool_t pool ODP_UNUSED)
+			  odp_pool_t pool)
 {
 	uint8_t portid = 0;
 	struct rte_eth_dev_info dev_info;
@@ -165,6 +165,9 @@ static int setup_pkt_dpdk(odp_pktio_t pktio ODP_UNUSED,
 		return -1;
 	}
 
+	if (pool == ODP_POOL_INVALID)
+		return -1;
+
 	pktio_entry->s.ops_data = ODP_OPS_DATA_ALLOC(sizeof(*pkt_dpdk));
 	if (odp_unlikely(pktio_entry->s.ops_data == NULL)) {
 		ODP_ERR("Failed to allocate pktio_ops_dpdk_data_t struct");
@@ -176,6 +179,7 @@ static int setup_pkt_dpdk(odp_pktio_t pktio ODP_UNUSED,
 
 	portid = atoi(netdev);
 	pkt_dpdk->portid = portid;
+	pkt_dpdk->pool = pool;
 	memset(&dev_info, 0, sizeof(struct rte_eth_dev_info));
 	rte_eth_dev_info_get(portid, &dev_info);
 	if (dev_info.driver_name == NULL) {
@@ -221,9 +225,9 @@ static int start_pkt_dpdk(pktio_entry_t *pktio_entry)
 	int socket_id =  sid < 0 ? 0 : sid;
 	uint16_t nbrxq, nbtxq;
 	pool_entry_cp_t *pool_entry_cp =
-			odp_pool_to_entry_cp(pktio_entry->s.pool);
+			odp_pool_to_entry_cp(pkt_dpdk->pool);
 	pool_entry_dp_t *pool_entry_dp =
-			odp_pool_to_entry_dp(pktio_entry->s.pool);
+			odp_pool_to_entry_dp(pkt_dpdk->pool);
 	uint16_t nb_rxd = RTE_TEST_RX_DESC_DEFAULT;
 	uint16_t nb_txd = RTE_TEST_TX_DESC_DEFAULT;
 	struct rte_eth_rss_conf rss_conf;
@@ -339,8 +343,9 @@ static void _odp_pktio_send_completion(pktio_entry_t *pktio_entry)
 	int i;
 	unsigned j;
 	odp_packet_t dummy;
+	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 	pool_entry_dp_t *pool_entry_dp =
-			odp_pool_to_entry_dp(pktio_entry->s.pool);
+			odp_pool_to_entry_dp(pkt_dpdk->pool);
 	struct rte_mempool *rte_mempool = pool_entry_dp->rte_mempool;
 
 	for (j = 0; j < pktio_entry->s.num_out_queue; j++)
@@ -400,7 +405,7 @@ static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 
 	if (nb_rx == 0 && !pkt_dpdk->lockless_tx) {
 		pool_entry_dp_t *pool_entry_dp =
-			odp_pool_to_entry_dp(pktio_entry->s.pool);
+			odp_pool_to_entry_dp(pkt_dpdk->pool);
 		struct rte_mempool *rte_mempool =
 			pool_entry_dp->rte_mempool;
 		if (rte_mempool_avail_count(rte_mempool) == 0)
