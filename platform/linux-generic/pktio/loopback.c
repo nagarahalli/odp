@@ -159,11 +159,6 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		packet_set_ts(pkt_hdr, ts);
 		pkt_hdr->input = pktio_entry->s.handle;
 
-		/* Try IPsec inline processing */
-		if (pktio_entry->s.config.inbound_ipsec &&
-		    odp_packet_has_ipsec(pkt))
-			_odp_ipsec_try_inline(pkt);
-
 		pktio_entry->s.stats.in_octets += pkt_len;
 		pkts[num_rx++] = pkt;
 	}

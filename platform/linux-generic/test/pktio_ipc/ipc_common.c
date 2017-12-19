@@ -57,6 +57,7 @@ int ipc_odp_packet_send_or_free(odp_pktio_t pktio,
 
 odp_pktio_t create_pktio(odp_pool_t pool, int master_pid)
 {
+	odp_pktio_config_t config;
 	odp_pktio_param_t pktio_param;
 	odp_pktio_t ipc_pktio;
 	char name[30];
@@ -74,6 +75,13 @@ odp_pktio_t create_pktio(odp_pool_t pool, int master_pid)
 		LOG_ERR("Error: ipc pktio %s create failed.\n", name);
 		return ODP_PKTIO_INVALID;
 	}
+
+        odp_pktio_config_init(&config);
+        config.parser.layer = ODP_PKTIO_PARSER_LAYER_NONE;
+        if (odp_pktio_config(ipc_pktio, &config)) {
+		LOG_ERR("Error: ipc pktio %s configure failed.\n", name);
+                return ODP_PKTIO_INVALID;
+        }
 
 	if (odp_pktin_queue_config(ipc_pktio, NULL)) {
 		LOG_ERR("Input queue config failed\n");
