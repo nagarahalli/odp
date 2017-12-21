@@ -155,12 +155,11 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 		packet_set_ts(pkt_hdr, ts);
 
-		pktio_entry->s.stats.in_octets += pkt_len;
+		pktio_entry->s.stats.in_octets += odp_packet_len(pkt);
 		pkts[num_rx++] = pkt;
 	}
 
-	pktio_entry->s.stats.in_errors += failed;
-	pktio_entry->s.stats.in_ucast_pkts += num_rx - failed;
+	pktio_entry->s.stats.in_ucast_pkts += num_rx;
 
 	odp_ticketlock_unlock(&pktio_entry->s.rxl);
 

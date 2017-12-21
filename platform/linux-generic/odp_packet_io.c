@@ -659,11 +659,10 @@ int pktin_poll_one(int pktio_index,
 {
 	int num_rx, num_pkts, i;
 	pktio_entry_t *entry = pktio_entry_by_index(pktio_index);
-	odp_packet_t pkt;
-	odp_packet_hdr_t *pkt_hdr;
 	odp_buffer_hdr_t *buf_hdr;
 	odp_packet_t packets[QUEUE_MULTI_MAX];
 	queue_t queue;
+	int failed = 0;
 
 	if (odp_unlikely(entry->s.state != PKTIO_STATE_STARTED)) {
 		if (entry->s.state < PKTIO_STATE_ACTIVE ||
@@ -680,29 +679,88 @@ int pktin_poll_one(int pktio_index,
 
 	num_rx = 0;
 	for (i = 0; i < num_pkts; i++) {
-		pkt = packets[i];
-		pkt_hdr = odp_packet_hdr(pkt);
+		odp_packet_hdr_t *pkt_hdr = odp_packet_hdr(packets[i]);
 
 		pkt_hdr->input = entry->s.handle;
 
-		if (!pktio_cls_enabled(entry))
+		if (pktio_cls_enabled(entry)) {
+			uint32_t pkt_len = odp_packet_len(packets[i]);
+			uint32_t seg_len = odp_packet_seg_len(packets[i]);
+			uint8_t buf[PACKET_PARSE_SEG_LEN];
+			odp_packet_hdr_t parsed_hdr;
+			odp_pool_t new_pool;
+			odp_packet_t new_pkt;
+			uint8_t *pkt_addr;
+			int ret;
+
+			/* Make sure there is enough data for the packet
+			 * parser in the case of a segmented packet. */
+			if (odp_unlikely(seg_len < PACKET_PARSE_SEG_LEN &&
+					 pkt_len > PACKET_PARSE_SEG_LEN)) {
+				odp_packet_copy_to_mem(packets[i], 0,
+						       PACKET_PARSE_SEG_LEN,
+						       buf);
+				seg_len = PACKET_PARSE_SEG_LEN;
+				pkt_addr = buf;
+			} else {
+				pkt_addr = odp_packet_data(packets[i]);
+			}
+
+			ret = cls_classify_packet(entry, pkt_addr,
+						  pkt_len,
+						  seg_len,
+						  &new_pool, &parsed_hdr);
+			if (ret) {
+				failed++;
+				odp_packet_free(packets[i]);
+				/* Count error octets */
+				entry->s.stats.in_octets +=
+					odp_packet_len(packets[i]);
+				continue;
+			}
+			if (new_pool != odp_packet_pool(packets[i])) {
+				new_pkt = odp_packet_copy(packets[i],
+							  new_pool);
+
+				odp_packet_free(packets[i]);
+				if (new_pkt == ODP_PACKET_INVALID) {
+					failed++;
+					/* Count error octets */
+					entry->s.stats.in_octets +=
+						odp_packet_len(packets[i]);
+					continue;
+				}
+				packets[i] = new_pkt;
+				pkt_hdr = odp_packet_hdr(packets[i]);
+			}
+			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
+		} else {
 			packet_parse_layer(pkt_hdr,
 					   entry->s.config.parser.layer);
+		}
+
+		/* Try IPsec inline processing */
+		if (entry->s.config.inbound_ipsec &&
+		    odp_packet_has_ipsec(packets[i]))
+			_odp_ipsec_try_inline(packets[i]);
 
 		if (odp_unlikely(pkt_hdr->p.input_flags.dst_queue)) {
 			queue = pkt_hdr->dst_queue;
-			buf_hdr = packet_to_buf_hdr(pkt);
+			buf_hdr = packet_to_buf_hdr(packets[i]);
 			if (queue_fn->enq_multi(queue, &buf_hdr, 1) < 0) {
 				/* Queue full? */
-				odp_packet_free(pkt);
+				odp_packet_free(packets[i]);
 				__atomic_fetch_add(&entry->s.stats.in_discards,
 						   1,
 						   __ATOMIC_RELAXED);
 			}
 		} else {
-			evt_tbl[num_rx++] = odp_packet_to_event(pkt);
+			evt_tbl[num_rx++] = odp_packet_to_event(packets[i]);
 		}
 	}
+
+	entry->s.stats.in_errors += failed;
+
 	return num_rx;
 }
 
@@ -1206,6 +1264,11 @@ int odp_pktio_stats(odp_pktio_t pktio,
 
 	if (entry->s.ops->stats)
 		ret = entry->s.ops->stats(entry, stats);
+
+	/* Subtract the errors due to classification */
+	stats->in_ucast_pkts -= entry->s.stats.in_errors;
+	stats->in_octets -= entry->s.stats.in_octets;
+
 	unlock_entry(entry);
 
 	return ret;
@@ -1635,6 +1698,7 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 {
 	uint16_t nb_rx, i;
 	pktio_entry_t *entry;
+	int failed = 0, success = 0;
 	odp_pktio_t pktio = queue.pktio;
 
 	entry = get_pktio_entry(pktio);
@@ -1650,16 +1714,74 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 
 		pkt_hdr->input = entry->s.handle;
 
-		if (!pktio_cls_enabled(entry))
+		if (pktio_cls_enabled(entry)) {
+			uint32_t pkt_len = odp_packet_len(packets[i]);
+			uint32_t seg_len = odp_packet_seg_len(packets[i]);
+			uint8_t buf[PACKET_PARSE_SEG_LEN];
+			odp_packet_hdr_t parsed_hdr;
+			odp_pool_t new_pool;
+			odp_packet_t new_pkt;
+			uint8_t *pkt_addr;
+			int ret;
+
+			/* Make sure there is enough data for the packet
+			 * parser in the case of a segmented packet. */
+			if (odp_unlikely(seg_len < PACKET_PARSE_SEG_LEN &&
+					 pkt_len > PACKET_PARSE_SEG_LEN)) {
+				odp_packet_copy_to_mem(packets[i], 0,
+						       PACKET_PARSE_SEG_LEN,
+						       buf);
+				seg_len = PACKET_PARSE_SEG_LEN;
+				pkt_addr = buf;
+			} else {
+				pkt_addr = odp_packet_data(packets[i]);
+			}
+
+			ret = cls_classify_packet(entry, pkt_addr,
+						  pkt_len,
+						  seg_len,
+						  &new_pool, &parsed_hdr);
+			if (ret) {
+				failed++;
+				odp_packet_free(packets[i]);
+				/* Count error octets */
+				entry->s.stats.in_octets +=
+					odp_packet_len(packets[i]);
+				continue;
+			}
+			if (new_pool != odp_packet_pool(packets[i])) {
+				new_pkt = odp_packet_copy(packets[i],
+							  new_pool);
+
+				odp_packet_free(packets[i]);
+				if (new_pkt == ODP_PACKET_INVALID) {
+					failed++;
+					/* Count error octets */
+					entry->s.stats.in_octets +=
+						odp_packet_len(packets[i]);
+					continue;
+				}
+				packets[i] = new_pkt;
+				pkt_hdr = odp_packet_hdr(packets[i]);
+			}
+			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
+			if (success != i)
+				packets[success] = packets[i];
+		} else {
 			packet_parse_layer(pkt_hdr,
 					   entry->s.config.parser.layer);
+		}
 
 		/* Try IPsec inline processing */
 		if (entry->s.config.inbound_ipsec &&
-		    odp_packet_has_ipsec(packets[i]))
-			_odp_ipsec_try_inline(packets[i]);
+		    odp_packet_has_ipsec(packets[success]))
+			_odp_ipsec_try_inline(packets[success]);
 
+		++success;
 	}
+
+	nb_rx = success;
+	entry->s.stats.in_errors += failed;
 
 	return nb_rx;
 }

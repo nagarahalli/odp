@@ -81,10 +81,8 @@ int sock_stats_fd(pktio_entry_t *pktio_entry,
 		sysfs_stats(pktio_entry, &cur_stats);
 	}
 
-	stats->in_octets = cur_stats.in_octets -
-				pktio_entry->s.stats.in_octets;
-	stats->in_ucast_pkts = cur_stats.in_ucast_pkts -
-				pktio_entry->s.stats.in_ucast_pkts;
+	stats->in_octets = cur_stats.in_octets;
+	stats->in_ucast_pkts = cur_stats.in_ucast_pkts;
 	stats->in_discards = cur_stats.in_discards -
 				pktio_entry->s.stats.in_discards;
 	stats->in_errors = cur_stats.in_errors -
