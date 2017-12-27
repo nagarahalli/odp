@@ -445,52 +445,6 @@ static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 		pkt_table = saved_pkt_table;
 	}
 
-	if (pktio_cls_enabled(pktio_entry)) {
-		int failed = 0, success = 0;
-
-		for (i = 0; i < nb_rx; i++) {
-			odp_packet_t new_pkt;
-			odp_pool_t new_pool;
-			uint8_t *pkt_addr;
-			odp_packet_hdr_t parsed_hdr;
-			int ret;
-			odp_packet_hdr_t *pkt_hdr =
-					odp_packet_hdr(pkt_table[i]);
-
-			pkt_addr = odp_packet_data(pkt_table[i]);
-			ret = cls_classify_packet(pktio_entry, pkt_addr,
-						  odp_packet_len(pkt_table[i]),
-						  odp_packet_len(pkt_table[i]),
-						  &new_pool, &parsed_hdr);
-			if (ret) {
-				failed++;
-				odp_packet_free(pkt_table[i]);
-				continue;
-			}
-			if (new_pool != odp_packet_pool(pkt_table[i])) {
-				new_pkt = odp_packet_copy(pkt_table[i],
-							  new_pool);
-
-				odp_packet_free(pkt_table[i]);
-				if (new_pkt == ODP_PACKET_INVALID) {
-					failed++;
-					continue;
-				}
-				pkt_table[i] = new_pkt;
-			}
-			packet_set_ts(pkt_hdr, ts);
-			pktio_entry->s.stats.in_octets +=
-					odp_packet_len(pkt_table[i]);
-			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
-			if (success != i)
-				pkt_table[success] = pkt_table[i];
-			++success;
-		}
-		pktio_entry->s.stats.in_errors += failed;
-		pktio_entry->s.stats.in_ucast_pkts += nb_rx - failed;
-		nb_rx = success;
-	}
-
 	return nb_rx;
 }
 
