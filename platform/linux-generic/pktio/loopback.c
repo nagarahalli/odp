@@ -87,7 +87,6 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	odp_time_t ts_val;
 	odp_time_t *ts = NULL;
 	int num_rx = 0;
-	int failed = 0;
 	pktio_ops_loopback_data_t *pkt_lbk = pktio_entry->s.ops_data;
 
 	if (odp_unlikely(len > QUEUE_MULTI_MAX))
@@ -104,54 +103,8 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	}
 
 	for (i = 0; i < nbr; i++) {
-		uint32_t pkt_len;
-
 		pkt = packet_from_buf_hdr(hdr_tbl[i]);
-		pkt_len = odp_packet_len(pkt);
 		pkt_hdr = odp_packet_hdr(pkt);
-
-		if (pktio_cls_enabled(pktio_entry)) {
-			odp_packet_t new_pkt;
-			odp_pool_t new_pool;
-			uint8_t *pkt_addr;
-			uint8_t buf[PACKET_PARSE_SEG_LEN];
-			int ret;
-			uint32_t seg_len = odp_packet_seg_len(pkt);
-
-			/* Make sure there is enough data for the packet
-			 * parser in the case of a segmented packet. */
-			if (odp_unlikely(seg_len < PACKET_PARSE_SEG_LEN &&
-					 pkt_len > PACKET_PARSE_SEG_LEN)) {
-				odp_packet_copy_to_mem(pkt, 0,
-						       PACKET_PARSE_SEG_LEN,
-						       buf);
-				seg_len = PACKET_PARSE_SEG_LEN;
-				pkt_addr = buf;
-			} else {
-				pkt_addr = odp_packet_data(pkt);
-			}
-
-			ret = cls_classify_packet(pktio_entry, pkt_addr,
-						  pkt_len, seg_len,
-						  &new_pool, pkt_hdr);
-			if (ret) {
-				failed++;
-				odp_packet_free(pkt);
-				continue;
-			}
-
-			if (new_pool != odp_packet_pool(pkt)) {
-				new_pkt = odp_packet_copy(pkt, new_pool);
-
-				odp_packet_free(pkt);
-
-				if (new_pkt == ODP_PACKET_INVALID) {
-					failed++;
-					continue;
-				}
-				pkt = new_pkt;
-			}
-		}
 
 		packet_set_ts(pkt_hdr, ts);
 

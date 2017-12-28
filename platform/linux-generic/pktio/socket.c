@@ -309,20 +309,6 @@ static int sock_mmsg_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		uint16_t pkt_len = msgvec[i].msg_len;
 		int ret;
 
-		if (pktio_cls_enabled(pktio_entry)) {
-			uint16_t seg_len =  pkt_len;
-
-			if (msgvec[i].msg_hdr.msg_iov->iov_len < pkt_len)
-				seg_len = msgvec[i].msg_hdr.msg_iov->iov_len;
-
-			if (cls_classify_packet(pktio_entry, base, pkt_len,
-						seg_len, &pool, pkt_hdr)) {
-				ODP_ERR("cls_classify_packet failed");
-				odp_packet_free(pkt);
-				continue;
-			}
-		}
-
 		/* Don't receive packets sent by ourselves */
 		if (odp_unlikely(ethaddrs_equal(pkt_sock->if_mac,
 						eth_hdr->h_source))) {
@@ -338,7 +324,6 @@ static int sock_mmsg_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			continue;
 		}
 
-		pkt_hdr->input = pktio_entry->s.handle;
 		packet_set_ts(pkt_hdr, ts);
 
 		pkt_table[nb_rx++] = pkt;

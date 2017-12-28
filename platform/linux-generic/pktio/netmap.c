@@ -657,7 +657,6 @@ static inline int netmap_pkt_to_odp(pktio_entry_t *pktio_entry,
 	odp_packet_t pkt;
 	odp_pool_t pool = pkt_nm->pool;
 	odp_packet_hdr_t *pkt_hdr;
-	odp_packet_hdr_t parsed_hdr;
 	int i;
 	int num;
 	int alloc_len;
@@ -682,13 +681,6 @@ static inline int netmap_pkt_to_odp(pktio_entry_t *pktio_entry,
 			goto fail;
 		}
 
-		if (pktio_cls_enabled(pktio_entry)) {
-			if (cls_classify_packet(pktio_entry,
-						(const uint8_t *)slot.buf, len,
-						len, &pool, &parsed_hdr))
-				goto fail;
-		}
-
 		pkt = pkt_tbl[i];
 		pkt_hdr = odp_packet_hdr(pkt);
 		pull_tail(pkt_hdr, alloc_len - len);
@@ -697,9 +689,6 @@ static inline int netmap_pkt_to_odp(pktio_entry_t *pktio_entry,
 		   worry about zero-copy later */
 		if (odp_packet_copy_from_mem(pkt, 0, len, slot.buf) != 0)
 			goto fail;
-
-		if (pktio_cls_enabled(pktio_entry))
-			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
 
 		packet_set_ts(pkt_hdr, ts);
 	}

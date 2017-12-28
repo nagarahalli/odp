@@ -406,8 +406,6 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 	}
 
 	for (i = 0; i < num; i++) {
-		odp_packet_hdr_t parsed_hdr;
-
 		mbuf = mbuf_table[i];
 		if (odp_unlikely(mbuf->nb_segs != 1)) {
 			ODP_ERR("Segmented buffers not supported\n");
@@ -419,23 +417,12 @@ static inline int mbuf_to_pkt(pktio_entry_t *pktio_entry,
 
 		pkt_len = rte_pktmbuf_pkt_len(mbuf);
 
-		if (pktio_cls_enabled(pktio_entry)) {
-			if (cls_classify_packet(pktio_entry,
-						(const uint8_t *)data,
-						pkt_len, pkt_len, &pool,
-						&parsed_hdr))
-				goto fail;
-		}
-
 		pkt     = pkt_table[i];
 		pkt_hdr = odp_packet_hdr(pkt);
 		pull_tail(pkt_hdr, alloc_len - pkt_len);
 
 		if (odp_packet_copy_from_mem(pkt, 0, pkt_len, data) != 0)
 			goto fail;
-
-		if (pktio_cls_enabled(pktio_entry))
-			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
 
 		if (mbuf->ol_flags & PKT_RX_RSS_HASH)
 			odp_packet_flow_hash_set(pkt, mbuf->hash.rss);
@@ -611,12 +598,9 @@ static inline int mbuf_to_pkt_zero(pktio_entry_t *pktio_entry,
 	void *data;
 	int i;
 	int nb_pkts = 0;
-	odp_pool_t pool = pkt_dpdk->pool;
 	odp_pktin_config_opt_t *pktin_cfg = &pkt_dpdk->pktin_cfg;
 
 	for (i = 0; i < mbuf_num; i++) {
-		odp_packet_hdr_t parsed_hdr;
-
 		mbuf = mbuf_table[i];
 		if (odp_unlikely(mbuf->nb_segs != 1)) {
 			ODP_ERR("Segmented buffers not supported\n");
@@ -630,24 +614,11 @@ static inline int mbuf_to_pkt_zero(pktio_entry_t *pktio_entry,
 		pkt = (odp_packet_t)mbuf->userdata;
 		pkt_hdr = odp_packet_hdr(pkt);
 
-		if (pktio_cls_enabled(pktio_entry)) {
-			if (cls_classify_packet(pktio_entry,
-						(const uint8_t *)data,
-						pkt_len, pkt_len, &pool,
-						&parsed_hdr))
-				ODP_ERR("Unable to classify packet\n");
-				rte_pktmbuf_free(mbuf);
-				continue;
-		}
-
 		/* Init buffer segments. Currently, only single segment packets
 		 * are supported. */
 		pkt_hdr->buf_hdr.seg[0].data = data;
 
 		packet_init(pkt_hdr, pkt_len);
-
-		if (pktio_cls_enabled(pktio_entry))
-			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
 
 		if (mbuf->ol_flags & PKT_RX_RSS_HASH)
 			odp_packet_flow_hash_set(pkt, mbuf->hash.rss);

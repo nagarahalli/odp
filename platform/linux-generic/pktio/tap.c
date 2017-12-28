@@ -275,15 +275,7 @@ static odp_packet_t pack_odp_pkt(pktio_entry_t *pktio_entry, const void *data,
 	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 	odp_packet_t pkt;
 	odp_packet_hdr_t *pkt_hdr;
-	odp_packet_hdr_t parsed_hdr;
 	int num;
-
-	if (pktio_cls_enabled(pktio_entry)) {
-		if (cls_classify_packet(pktio_entry, data, len, len,
-					&tap->pool, &parsed_hdr)) {
-			return ODP_PACKET_INVALID;
-		}
-	}
 
 	num = packet_alloc_multi(tap->pool, len, &pkt, 1);
 
@@ -297,9 +289,6 @@ static odp_packet_t pack_odp_pkt(pktio_entry_t *pktio_entry, const void *data,
 	}
 
 	pkt_hdr = odp_packet_hdr(pkt);
-
-	if (pktio_cls_enabled(pktio_entry))
-		copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
 
 	packet_set_ts(pkt_hdr, ts);
 

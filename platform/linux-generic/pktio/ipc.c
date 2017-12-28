@@ -531,9 +531,6 @@ static int ipc_pktio_recv_lockless(pktio_entry_t *pktio_entry,
 			data_pool_off;
 		memcpy(pkt_data, rmt_data_ptr, phdr->frame_len);
 
-		/* Copy packets L2, L3 parsed offsets and size */
-		copy_packet_cls_metadata(phdr, odp_packet_hdr(pkt));
-
 		odp_packet_hdr(pkt)->frame_len = phdr->frame_len;
 		odp_packet_hdr(pkt)->headroom = phdr->headroom;
 		odp_packet_hdr(pkt)->tailroom = phdr->tailroom;

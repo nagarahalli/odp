@@ -150,7 +150,7 @@ static uint8_t *pkt_mmap_vlan_insert(uint8_t *l2_hdr_ptr,
 	return l2_hdr_ptr;
 }
 
-static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
+static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry ODP_UNUSED,
 				      pktio_ops_socket_mmap_data_t *pkt_sock,
 				      odp_packet_t pkt_table[], unsigned len,
 				      unsigned char if_mac[])
@@ -175,7 +175,6 @@ static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
 
 	for (i = 0, nb_rx = 0; i < len; i++) {
 		odp_packet_hdr_t *hdr;
-		odp_packet_hdr_t parsed_hdr;
 		odp_pool_t pool = pkt_sock->pool;
 		int num;
 
@@ -206,15 +205,6 @@ static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
 						       ppd.v2->tp_h.tp_vlan_tci,
 						       &pkt_len);
 
-		if (pktio_cls_enabled(pktio_entry)) {
-			if (cls_classify_packet(pktio_entry, pkt_buf, pkt_len,
-						pkt_len, &pool, &parsed_hdr)) {
-				mmap_rx_user_ready(ppd.raw); /* drop */
-				frame_num = next_frame_num;
-				continue;
-			}
-		}
-
 		num = packet_alloc_multi(pool, pkt_len, &pkt_table[nb_rx], 1);
 
 		if (odp_unlikely(num != 1)) {
@@ -232,9 +222,6 @@ static inline unsigned pkt_mmap_v2_rx(pktio_entry_t *pktio_entry,
 			frame_num = next_frame_num;
 			continue;
 		}
-
-		if (pktio_cls_enabled(pktio_entry))
-			copy_packet_cls_metadata(&parsed_hdr, hdr);
 
 		packet_set_ts(hdr, ts);
 
