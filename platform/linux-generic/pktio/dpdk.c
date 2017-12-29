@@ -550,7 +550,7 @@ static inline int pkt_to_mbuf(pktio_entry_t *pktio_entry,
 	int i, j;
 	char *data;
 	uint16_t pkt_len;
-	odp_pktout_config_opt_t *pktout_cfg = &pktio_entry->s.config.pktout;
+	odp_pktout_config_opt_t *pktout_cfg = &pkt_dpdk->pktout_cfg;
 
 	if (odp_unlikely((rte_pktmbuf_alloc_bulk(pkt_dpdk->pkt_pool,
 						 mbuf_table, num)))) {
@@ -644,7 +644,7 @@ static inline int pkt_to_mbuf_zero(pktio_entry_t *pktio_entry,
 				   uint16_t *copy_count)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
-	odp_pktout_config_opt_t *pktout_cfg = &pktio_entry->s.config.pktout;
+	odp_pktout_config_opt_t *pktout_cfg = &pkt_dpdk->pktout_cfg;
 	int i;
 	*copy_count = 0;
 
