@@ -763,9 +763,6 @@ static int netmap_recv(pktio_entry_t *pktio_entry, int index,
 	int max_fd = 0;
 	fd_set empty_rings;
 
-	if (odp_unlikely(pktio_entry->s.state != PKTIO_STATE_STARTED))
-		return 0;
-
 	FD_ZERO(&empty_rings);
 
 	if (!pkt_nm->lockless_rx)
@@ -817,9 +814,6 @@ static int netmap_send(pktio_entry_t *pktio_entry, int index,
 	uint32_t pkt_len;
 	unsigned slot_id;
 	char *buf;
-
-	if (odp_unlikely(pktio_entry->s.state != PKTIO_STATE_STARTED))
-		return 0;
 
 	/* Only one netmap tx ring per pktout queue */
 	desc_id = pkt_nm->tx_desc_ring[index].s.cur;
