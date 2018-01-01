@@ -55,6 +55,7 @@ typedef struct {
 	unsigned num_in_queues;		  /**< num input queues */
 	unsigned num_out_queues;	  /**< num output queues */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_pktin_mode_t pktin_mode;	  /**< pkt in mode */
 	odp_pktout_config_opt_t pktout_cfg; /**< pkt out config */
 	/** Use system call to get/set vdev promisc mode */
 	odp_bool_t vdev_sysc_promisc;

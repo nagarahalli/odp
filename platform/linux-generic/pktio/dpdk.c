@@ -1059,13 +1059,12 @@ static int dpdk_input_queues_config(pktio_entry_t *pktio_entry,
 				    int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
-	odp_pktin_mode_t mode = pktio_entry->s.param.in_mode;
 	odp_bool_t lockless;
 
 	/**
 	 * Scheduler synchronizes input queue polls. Only single thread
 	 * at a time polls a queue */
-	if (mode == ODP_PKTIN_MODE_SCHED ||
+	if (pkt_dpdk->pktin_mode == ODP_PKTIN_MODE_SCHED ||
 	    p->op_mode == ODP_PKTIO_OP_MT_UNSAFE)
 		lockless = 1;
 	else
@@ -1229,6 +1228,7 @@ static int dpdk_open(odp_pktio_t id ODP_UNUSED,
 
 	pkt_dpdk->pool = pool;
 	pkt_dpdk->port_id = atoi(netdev);
+	pkt_dpdk->pktin_mode = pktio_entry->s.param.in_mode;
 
 	if (rte_eth_dev_count() == 0) {
 		ODP_ERR("No DPDK ports found\n");

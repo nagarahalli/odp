@@ -150,12 +150,11 @@ static int netmap_input_queues_config(pktio_entry_t *pktio_entry,
 				      int num_queues ODP_UNUSED)
 {
 	pktio_ops_netmap_data_t *pkt_nm = pktio_entry->s.ops_data;
-	odp_pktin_mode_t mode = pktio_entry->s.param.in_mode;
 	odp_bool_t lockless;
 
 	/* Scheduler synchronizes input queue polls. Only single thread
 	 * at a time polls a queue */
-	if (mode == ODP_PKTIN_MODE_SCHED)
+	if (pkt_nm->pktin_mode == ODP_PKTIN_MODE_SCHED)
 		lockless = 1;
 	else
 		lockless = (p->op_mode == ODP_PKTIO_OP_MT_UNSAFE);
@@ -381,6 +380,8 @@ static int netmap_open(odp_pktio_t id ODP_UNUSED, pktio_entry_t *pktio_entry,
 	memset(pkt_nm, 0, sizeof(*pkt_nm));
 	pkt_nm->sockfd = -1;
 	pkt_nm->pool = pool;
+	pkt_nm->pktin_mode = pktio_entry->s.param.in_mode;
+	pkt_nm->pktout_mode = pktio_entry->s.param.out_mode;
 
 	/* max frame len taking into account the l2-offset */
 	pkt_nm->max_frame_len = pool_entry_from_hdl(pool)->max_len;
@@ -504,13 +505,11 @@ static int netmap_start(pktio_entry_t *pktio_entry)
 	unsigned j;
 	unsigned num_rx_desc = 0;
 	uint64_t flags;
-	odp_pktin_mode_t in_mode = pktio_entry->s.param.in_mode;
-	odp_pktout_mode_t out_mode = pktio_entry->s.param.out_mode;
 
 	/* If no pktin/pktout queues have been configured. Configure one
 	 * for each direction. */
 	if (!pkt_nm->num_in_queues &&
-	    in_mode != ODP_PKTIN_MODE_DISABLED) {
+	    pkt_nm->pktin_mode != ODP_PKTIN_MODE_DISABLED) {
 		odp_pktin_queue_param_t param;
 
 		odp_pktin_queue_param_init(&param);
@@ -519,7 +518,7 @@ static int netmap_start(pktio_entry_t *pktio_entry)
 			return -1;
 	}
 	if (!pkt_nm->num_out_queues &&
-	    out_mode == ODP_PKTOUT_MODE_DIRECT) {
+	    pkt_nm->pktout_mode == ODP_PKTOUT_MODE_DIRECT) {
 		odp_pktout_queue_param_t param;
 
 		odp_pktout_queue_param_init(&param);
