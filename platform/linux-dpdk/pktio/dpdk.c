@@ -441,7 +441,7 @@ static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 			odp_packet_free(pkt_table[i]);
 		nb_rx = RTE_MIN(len, nb_rx);
 		free(pkt_table);
-		pktio_entry->s.stats.in_discards += min - len;
+		pkt_dpdk->in_discards += min - len;
 		pkt_table = saved_pkt_table;
 	}
 
@@ -643,12 +643,13 @@ static int link_status_pkt_dpdk(pktio_entry_t *pktio_entry)
 	return link.link_status;
 }
 
-static void stats_convert(struct rte_eth_stats *rte_stats,
+static void stats_convert(const pktio_ops_dpdk_data_t *pkt_dpdk,
+			  struct rte_eth_stats *rte_stats,
 			  odp_pktio_stats_t *stats)
 {
 	stats->in_octets = rte_stats->ibytes;
 	stats->in_ucast_pkts = 0;
-	stats->in_discards = rte_stats->imissed;
+	stats->in_discards = rte_stats->imissed + pkt_dpdk->in_discards;
 	stats->in_errors = rte_stats->ierrors;
 	stats->in_unknown_protos = 0;
 	stats->out_octets = rte_stats->obytes;
@@ -666,7 +667,7 @@ static int stats_pkt_dpdk(pktio_entry_t *pktio_entry, odp_pktio_stats_t *stats)
 	ret = rte_eth_stats_get(pkt_dpdk->portid, &rte_stats);
 
 	if (ret == 0) {
-		stats_convert(&rte_stats, stats);
+		stats_convert(pkt_dpdk, &rte_stats, stats);
 		return 0;
 	}
 
@@ -677,9 +678,11 @@ static int stats_pkt_dpdk(pktio_entry_t *pktio_entry, odp_pktio_stats_t *stats)
 
 static int stats_reset_pkt_dpdk(pktio_entry_t *pktio_entry)
 {
-	const pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
+	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
 
 	rte_eth_stats_reset(pkt_dpdk->portid);
+	pkt_dpdk->in_discards = 0;
+
 	return 0;
 }
 

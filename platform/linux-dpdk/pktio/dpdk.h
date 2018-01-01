@@ -56,6 +56,7 @@ typedef struct {
 	odp_pool_t pool;		/**< pool to use in this pkt I/O */
 	int num_in_queues;		/**< num input queues */
 	int num_out_queues;		/**< num output queues */
+	uint64_t in_discards;		/**< pkts discarded by this pkt I/O */
 
 	/********************************/
 	char ifname[32];
