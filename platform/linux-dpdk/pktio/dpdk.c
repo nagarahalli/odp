@@ -112,12 +112,11 @@ static int input_queues_config_pkt_dpdk(pktio_entry_t *pktio_entry,
 					int num_queues)
 {
 	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
-	odp_pktin_mode_t mode = pktio_entry->s.param.in_mode;
 
 	/**
 	 * Scheduler synchronizes input queue polls. Only single thread
 	 * at a time polls a queue */
-	if (mode == ODP_PKTIN_MODE_SCHED ||
+	if (pkt_dpdk->pktin_mode == ODP_PKTIN_MODE_SCHED ||
 	    p->op_mode == ODP_PKTIO_OP_MT_UNSAFE)
 		pkt_dpdk->lockless_rx = 1;
 	else
@@ -194,6 +193,7 @@ static int setup_pkt_dpdk(odp_pktio_t pktio ODP_UNUSED,
 	portid = atoi(netdev);
 	pkt_dpdk->portid = portid;
 	pkt_dpdk->pool = pool;
+	pkt_dpdk->pktin_mode = pktio_entry->s.param.in_mode;
 	memset(&dev_info, 0, sizeof(struct rte_eth_dev_info));
 	rte_eth_dev_info_get(portid, &dev_info);
 	if (dev_info.driver_name == NULL) {
