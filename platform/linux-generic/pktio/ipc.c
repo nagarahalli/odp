@@ -362,6 +362,9 @@ static int ipc_pktio_open(odp_pktio_t id ODP_UNUSED,
 
 	odp_atomic_init_u32(&pkt_ipc->ready, 0);
 
+	odp_ticketlock_init(&pkt_ipc->rx_lock);
+	odp_ticketlock_init(&pkt_ipc->tx_lock);
+
 	pkt_ipc->rx.cache = _ring_create("ipc_rx_cache",
 						   PKTIO_IPC_ENTRIES,
 						   _RING_NO_LIST);
@@ -588,13 +591,14 @@ repeat:
 static int ipc_pktio_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			  odp_packet_t pkt_table[], int len)
 {
+	pktio_ops_ipc_data_t *pkt_ipc = pktio_entry->s.ops_data;
 	int ret;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&pkt_ipc->rx_lock);
 
 	ret = ipc_pktio_recv_lockless(pktio_entry, pkt_table, len);
 
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&pkt_ipc->rx_lock);
 
 	return ret;
 }
@@ -689,13 +693,14 @@ static int ipc_pktio_send_lockless(pktio_entry_t *pktio_entry,
 static int ipc_pktio_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			  const odp_packet_t pkt_table[], int len)
 {
+	pktio_ops_ipc_data_t *pkt_ipc = pktio_entry->s.ops_data;
 	int ret;
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&pkt_ipc->tx_lock);
 
 	ret = ipc_pktio_send_lockless(pktio_entry, pkt_table, len);
 
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&pkt_ipc->tx_lock);
 
 	return ret;
 }

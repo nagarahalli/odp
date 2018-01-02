@@ -591,6 +591,9 @@ static int sock_mmap_open(odp_pktio_t id ODP_UNUSED,
 	if (ret != 0)
 		goto error;
 
+	odp_ticketlock_init(&pkt_sock->rx_lock);
+	odp_ticketlock_init(&pkt_sock->tx_lock);
+
 	return 0;
 
 error:
@@ -604,10 +607,10 @@ static int sock_mmap_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	pktio_ops_socket_mmap_data_t *const pkt_sock = pktio_entry->s.ops_data;
 	int ret;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&pkt_sock->rx_lock);
 	ret = pkt_mmap_v2_rx(pktio_entry, pkt_sock, pkt_table, len,
 			     pkt_sock->if_mac);
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&pkt_sock->rx_lock);
 
 	return ret;
 }
@@ -618,10 +621,10 @@ static int sock_mmap_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	int ret;
 	pktio_ops_socket_mmap_data_t *const pkt_sock = pktio_entry->s.ops_data;
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&pkt_sock->tx_lock);
 	ret = pkt_mmap_v2_tx(pkt_sock->tx_ring.sock, &pkt_sock->tx_ring,
 			     pkt_table, len);
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&pkt_sock->tx_lock);
 
 	return ret;
 }

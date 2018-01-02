@@ -168,6 +168,9 @@ static int tap_pktio_open(odp_pktio_t id ODP_UNUSED,
 		goto sock_err;
 	}
 
+	odp_ticketlock_init(&tap->rx_lock);
+	odp_ticketlock_init(&tap->tx_lock);
+
 	tap->fd = fd;
 	tap->skfd = skfd;
 	tap->mtu = mtu;
@@ -305,7 +308,7 @@ static int tap_pktio_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	odp_time_t ts_val;
 	odp_time_t *ts = NULL;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&tap->rx_lock);
 
 	if (tap->pktin_cfg.bit.ts_all || tap->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
@@ -328,7 +331,7 @@ static int tap_pktio_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			break;
 	}
 
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&tap->rx_lock);
 
 	return i;
 }
@@ -388,13 +391,14 @@ static int tap_pktio_send_lockless(pktio_entry_t *pktio_entry,
 static int tap_pktio_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			  const odp_packet_t pkts[], int len)
 {
+	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 	int ret;
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&tap->tx_lock);
 
 	ret = tap_pktio_send_lockless(pktio_entry, pkts, len);
 
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&tap->tx_lock);
 
 	return ret;
 }

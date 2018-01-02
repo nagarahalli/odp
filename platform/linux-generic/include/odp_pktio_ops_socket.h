@@ -43,6 +43,8 @@ typedef struct {
 	uint32_t mtu;    /**< maximum transmission unit */
 	unsigned char if_mac[ETH_ALEN];	/**< IF eth mac addr */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_ticketlock_t rx_lock; /**< RX lock */
+	odp_ticketlock_t tx_lock; /**< TX lock */
 } pktio_ops_socket_data_t;
 
 /** packet mmap ring */
@@ -81,6 +83,8 @@ typedef struct {
 	struct sockaddr_ll ll;
 	int fanout;
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_ticketlock_t rx_lock; /**< RX lock */
+	odp_ticketlock_t tx_lock; /**< TX lock */
 } pktio_ops_socket_mmap_data_t;
 
 static inline void

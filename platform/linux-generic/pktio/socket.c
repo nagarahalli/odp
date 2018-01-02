@@ -220,6 +220,9 @@ static int sock_setup_pkt(pktio_entry_t *pktio_entry, const char *netdev,
 	if (err != 0)
 		goto error;
 
+	odp_ticketlock_init(&pkt_sock->rx_lock);
+	odp_ticketlock_init(&pkt_sock->tx_lock);
+
 	return 0;
 
 error:
@@ -282,7 +285,7 @@ static int sock_mmsg_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	int recv_msgs;
 	int i;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&pkt_sock->rx_lock);
 
 	if (pkt_sock->pktin_cfg.bit.ts_all || pkt_sock->pktin_cfg.bit.ts_ptp)
 		ts = &ts_val;
@@ -333,7 +336,7 @@ static int sock_mmsg_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	for (; i < nb_pkts; i++)
 		odp_packet_free(pkt_table[i]);
 
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&pkt_sock->rx_lock);
 
 	return nb_rx;
 }
@@ -370,7 +373,7 @@ static int sock_mmsg_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	int sockfd;
 	int n, i;
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&pkt_sock->tx_lock);
 
 	sockfd = pkt_sock->sockfd;
 	memset(msgvec, 0, sizeof(msgvec));
@@ -387,7 +390,7 @@ static int sock_mmsg_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			if (i == 0 && SOCK_ERR_REPORT(errno)) {
 				__odp_errno = errno;
 				ODP_ERR("sendmmsg(): %s\n", strerror(errno));
-				odp_ticketlock_unlock(&pktio_entry->s.txl);
+				odp_ticketlock_unlock(&pkt_sock->tx_lock);
 				return -1;
 			}
 			break;
@@ -396,7 +399,7 @@ static int sock_mmsg_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		i += ret;
 	}
 
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&pkt_sock->tx_lock);
 
 	for (n = 0; n < i; ++n)
 		odp_packet_free(pkt_table[n]);

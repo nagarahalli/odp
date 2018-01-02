@@ -86,6 +86,8 @@ typedef	struct {
 	odp_shm_t pinfo_shm;
 	odp_shm_t remote_pool_shm; /**< shm of remote pool get with
 					_ipc_map_remote_pool() */
+	odp_ticketlock_t rx_lock; /**< RX lock */
+	odp_ticketlock_t tx_lock; /**< TX lock */
 } pktio_ops_ipc_data_t;
 
 #endif

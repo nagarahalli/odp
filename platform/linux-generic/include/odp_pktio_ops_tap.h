@@ -18,6 +18,8 @@ typedef struct {
 					     MAC address of kernel interface)*/
 	odp_pool_t pool;		/**< pool to alloc packets from */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_ticketlock_t rx_lock; /**< RX lock */
+	odp_ticketlock_t tx_lock; /**< TX lock */
 } pktio_ops_tap_data_t;
 
 #endif

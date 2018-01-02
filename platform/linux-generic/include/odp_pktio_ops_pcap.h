@@ -21,6 +21,8 @@ typedef struct {
 	int loop_cnt;		/**< number of loops completed */
 	odp_bool_t promisc;	/**< promiscuous mode state */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_ticketlock_t rx_lock; /**< RX lock */
+	odp_ticketlock_t tx_lock; /**< TX lock */
 } pktio_ops_pcap_data_t;
 
 #endif

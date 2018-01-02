@@ -57,6 +57,9 @@ static int loopback_open(odp_pktio_t id, pktio_entry_t *pktio_entry,
 		return -1;
 	}
 
+	odp_ticketlock_init(&pkt_lbk->rx_lock);
+	odp_ticketlock_init(&pkt_lbk->tx_lock);
+
 	loopback_stats_reset(pktio_entry);
 
 	return 0;
@@ -92,7 +95,7 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	if (odp_unlikely(len > QUEUE_MULTI_MAX))
 		len = QUEUE_MULTI_MAX;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&pkt_lbk->rx_lock);
 
 	queue = queue_fn->from_ext(pkt_lbk->loopq);
 	nbr = queue_fn->deq_multi(queue, hdr_tbl, len);
@@ -114,7 +117,7 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 	pktio_entry->s.stats.in_ucast_pkts += num_rx;
 
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&pkt_lbk->rx_lock);
 
 	return num_rx;
 }
@@ -153,7 +156,7 @@ static int loopback_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 						      ODP_EVENT_PACKET_BASIC);
 		}
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&pkt_lbk->tx_lock);
 
 	queue = queue_fn->from_ext(pkt_lbk->loopq);
 	ret = queue_fn->enq_multi(queue, hdr_tbl, len);
@@ -166,7 +169,7 @@ static int loopback_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		ret = -1;
 	}
 
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&pkt_lbk->tx_lock);
 
 	return ret;
 }

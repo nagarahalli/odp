@@ -167,6 +167,9 @@ static int pcapif_init(odp_pktio_t id ODP_UNUSED, pktio_entry_t *pktio_entry,
 	if (ret == 0 && (!pcap->rx && !pcap->tx_dump))
 		ret = -1;
 
+	odp_ticketlock_init(&pcap->rx_lock);
+	odp_ticketlock_init(&pcap->tx_lock);
+
 	(void)pcapif_stats_reset(pktio_entry);
 
 	if (ret)
@@ -228,10 +231,10 @@ static int pcapif_recv_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	odp_time_t ts_val;
 	odp_time_t *ts = NULL;
 
-	odp_ticketlock_lock(&pktio_entry->s.rxl);
+	odp_ticketlock_lock(&pcap->rx_lock);
 
 	if (!pcap->rx) {
-		odp_ticketlock_unlock(&pktio_entry->s.rxl);
+		odp_ticketlock_unlock(&pcap->rx_lock);
 		return 0;
 	}
 	if (pcap->pktin_cfg.bit.ts_all || pcap->pktin_cfg.bit.ts_ptp)
@@ -275,7 +278,7 @@ static int pcapif_recv_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	}
 	pktio_entry->s.stats.in_ucast_pkts += i;
 
-	odp_ticketlock_unlock(&pktio_entry->s.rxl);
+	odp_ticketlock_unlock(&pcap->rx_lock);
 
 	return i;
 }
@@ -306,14 +309,14 @@ static int pcapif_send_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	pktio_ops_pcap_data_t *pcap = pktio_entry->s.ops_data;
 	int i;
 
-	odp_ticketlock_lock(&pktio_entry->s.txl);
+	odp_ticketlock_lock(&pcap->tx_lock);
 
 	for (i = 0; i < len; ++i) {
 		int pkt_len = odp_packet_len(pkts[i]);
 
 		if (pkt_len > PKTIO_PCAP_MTU) {
 			if (i == 0) {
-				odp_ticketlock_unlock(&pktio_entry->s.txl);
+				odp_ticketlock_unlock(&pcap->tx_lock);
 				return -1;
 			}
 			break;
@@ -328,7 +331,7 @@ static int pcapif_send_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 	pktio_entry->s.stats.out_ucast_pkts += i;
 
-	odp_ticketlock_unlock(&pktio_entry->s.txl);
+	odp_ticketlock_unlock(&pcap->tx_lock);
 
 	return i;
 }
