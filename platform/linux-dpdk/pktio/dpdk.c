@@ -346,46 +346,6 @@ static int stop_pkt_dpdk(pktio_entry_t *pktio_entry)
 	return 0;
 }
 
-/* Forward declaration */
-static int send_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
-			 const odp_packet_t pkt_table[], int len);
-
-/* This function can't be called if pkt_dpdk->lockless_tx is true */
-static void _odp_pktio_send_completion(pktio_entry_t *pktio_entry)
-{
-	int i;
-	int j;
-	odp_packet_t dummy;
-	pktio_ops_dpdk_data_t *pkt_dpdk = pktio_entry->s.ops_data;
-	pool_entry_dp_t *pool_entry_dp =
-			odp_pool_to_entry_dp(pkt_dpdk->pool);
-	struct rte_mempool *rte_mempool = pool_entry_dp->rte_mempool;
-
-	for (j = 0; j < pkt_dpdk->num_out_queues; j++)
-		send_pkt_dpdk(pktio_entry, j, &dummy, 0);
-
-	for (i = 0; i < ODP_CONFIG_PKTIO_ENTRIES; ++i) {
-		pktio_entry_t *entry = &pktio_tbl->entries[i];
-
-		if (rte_mempool_avail_count(rte_mempool) != 0)
-			return;
-
-		if (entry == pktio_entry)
-			continue;
-
-		if (odp_ticketlock_trylock(&entry->s.txl)) {
-			if (entry->s.state != PKTIO_STATE_FREE &&
-			    entry->s.ops == &dpdk_pktio_ops) {
-				for (j = 0; j < pkt_dpdk->num_out_queues;
-				     j++)
-					send_pkt_dpdk(pktio_entry, j,
-						      &dummy, 0);
-			}
-			odp_ticketlock_unlock(&entry->s.txl);
-		}
-	}
-}
-
 static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 			 odp_packet_t pkt_table[], int len)
 {
@@ -414,15 +374,6 @@ static int recv_pkt_dpdk(pktio_entry_t *pktio_entry, int index,
 	if (pkt_dpdk->pktin_cfg.bit.ts_all || pkt_dpdk->pktin_cfg.bit.ts_ptp) {
 		ts_val = odp_time_global();
 		ts = &ts_val;
-	}
-
-	if (nb_rx == 0 && !pkt_dpdk->lockless_tx) {
-		pool_entry_dp_t *pool_entry_dp =
-			odp_pool_to_entry_dp(pkt_dpdk->pool);
-		struct rte_mempool *rte_mempool =
-			pool_entry_dp->rte_mempool;
-		if (rte_mempool_avail_count(rte_mempool) == 0)
-			_odp_pktio_send_completion(pktio_entry);
 	}
 
 	if (!pkt_dpdk->lockless_rx)
