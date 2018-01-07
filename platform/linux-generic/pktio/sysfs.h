@@ -8,16 +8,16 @@
 #define ODP_PKTIO_SYSFS_H_
 
 /**
- * Get statistics for a pktio entry
+ * Get statistics for a pktio device
  *
- * @param pktio_entry     Packet IO entry
- * @param stats[out]	   Output buffer for counters
+ * @param dev	     Pkt I/O device name
+ * @param stats[out] Output buffer for counters
  *
  * @retval 0 on success
  * @retval != 0 on failure
  */
 
-int sysfs_stats(pktio_entry_t *pktio_entry,
+int sysfs_stats(const char *dev,
 		odp_pktio_stats_t *stats);
 
 #endif /* ODP_PKTIO_SYSFS_H_ */

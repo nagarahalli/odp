@@ -158,6 +158,9 @@ static int sock_setup_pkt(pktio_entry_t *pktio_entry, const char *netdev,
 	pkt_sock->sockfd = -1;
 	pkt_sock->pool = pool;
 
+	/* Length check is already done in pkt IO common code */
+	strncpy(pkt_sock->name, netdev, strlen(netdev));
+
 	snprintf(shm_name, ODP_SHM_NAME_LEN, "%s-%s", "pktio", netdev);
 	shm_name[ODP_SHM_NAME_LEN - 1] = '\0';
 
@@ -201,14 +204,14 @@ static int sock_setup_pkt(pktio_entry_t *pktio_entry, const char *netdev,
 	}
 
 	err = ethtool_stats_get_fd(pkt_sock->sockfd,
-				   pktio_entry->s.name,
+				   pkt_sock->name,
 				   &cur_stats);
 	if (err != 0) {
-		err = sysfs_stats(pktio_entry, &cur_stats);
+		err = sysfs_stats(pkt_sock->name, &cur_stats);
 		if (err != 0) {
 			pktio_entry->s.stats_type = STATS_UNSUPPORTED;
 			ODP_DBG("pktio: %s unsupported stats\n",
-				pktio_entry->s.name);
+				pkt_sock->name);
 		} else {
 		pktio_entry->s.stats_type = STATS_SYSFS;
 		}
@@ -438,7 +441,7 @@ static int sock_promisc_mode_set(pktio_entry_t *pktio_entry,
 	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
 
 	return promisc_mode_set_fd(pkt_sock->sockfd,
-				   pktio_entry->s.name, enable);
+				   pkt_sock->name, enable);
 }
 
 /*
@@ -449,7 +452,7 @@ static int sock_promisc_mode_get(pktio_entry_t *pktio_entry)
 	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
 
 	return promisc_mode_get_fd(pkt_sock->sockfd,
-				   pktio_entry->s.name);
+				   pkt_sock->name);
 }
 
 static int sock_link_status(pktio_entry_t *pktio_entry)
@@ -457,7 +460,7 @@ static int sock_link_status(pktio_entry_t *pktio_entry)
 	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
 
 	return link_status_fd(pkt_sock->sockfd,
-			      pktio_entry->s.name);
+			      pkt_sock->name);
 }
 
 static int sock_config(pktio_entry_t *pktio_entry,
@@ -496,7 +499,10 @@ static int sock_stats(pktio_entry_t *pktio_entry,
 		return 0;
 	}
 
-	return sock_stats_fd(pktio_entry, stats, pkt_sock->sockfd);
+	return sock_stats_fd(pktio_entry,
+			     pkt_sock->name,
+			     stats,
+			     pkt_sock->sockfd);
 }
 
 static int sock_stats_reset(pktio_entry_t *pktio_entry)
@@ -509,7 +515,9 @@ static int sock_stats_reset(pktio_entry_t *pktio_entry)
 		return 0;
 	}
 
-	return sock_stats_reset_fd(pktio_entry, pkt_sock->sockfd);
+	return sock_stats_reset_fd(pktio_entry,
+				   pkt_sock->name,
+				   pkt_sock->sockfd);
 }
 
 static int sock_init_global(void)

@@ -27,7 +27,7 @@
  * ODP_PACKET_SOCKET_MMAP:
  * ODP_PACKET_NETMAP:
  */
-int sock_stats_reset_fd(pktio_entry_t *pktio_entry, int fd)
+int sock_stats_reset_fd(pktio_entry_t *pktio_entry, const char *name, int fd)
 {
 	int err = 0;
 	odp_pktio_stats_t cur_stats;
@@ -42,10 +42,10 @@ int sock_stats_reset_fd(pktio_entry_t *pktio_entry, int fd)
 
 	if (pktio_entry->s.stats_type == STATS_ETHTOOL) {
 		(void)ethtool_stats_get_fd(fd,
-					   pktio_entry->s.name,
+					   name,
 					   &cur_stats);
 	} else if (pktio_entry->s.stats_type == STATS_SYSFS) {
-		err = sysfs_stats(pktio_entry, &cur_stats);
+		err = sysfs_stats(name, &cur_stats);
 		if (err != 0)
 			ODP_ERR("stats error\n");
 	}
@@ -63,6 +63,7 @@ int sock_stats_reset_fd(pktio_entry_t *pktio_entry, int fd)
  * ODP_PACKET_NETMAP:
  */
 int sock_stats_fd(pktio_entry_t *pktio_entry,
+		  const char *name,
 		  odp_pktio_stats_t *stats,
 		  int fd)
 {
@@ -75,10 +76,10 @@ int sock_stats_fd(pktio_entry_t *pktio_entry,
 	memset(&cur_stats, 0, sizeof(odp_pktio_stats_t));
 	if (pktio_entry->s.stats_type == STATS_ETHTOOL) {
 		(void)ethtool_stats_get_fd(fd,
-					   pktio_entry->s.name,
+					   name,
 					   &cur_stats);
 	} else if (pktio_entry->s.stats_type == STATS_SYSFS) {
-		sysfs_stats(pktio_entry, &cur_stats);
+		sysfs_stats(name, &cur_stats);
 	}
 
 	stats->in_octets = cur_stats.in_octets;

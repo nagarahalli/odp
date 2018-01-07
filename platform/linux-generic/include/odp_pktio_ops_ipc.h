@@ -88,6 +88,7 @@ typedef	struct {
 					_ipc_map_remote_pool() */
 	odp_ticketlock_t rx_lock; /**< RX lock */
 	odp_ticketlock_t tx_lock; /**< TX lock */
+	char name[ODP_CONFIG_PKTIO_NAME_LEN]; /**< pkt IO name */
 } pktio_ops_ipc_data_t;
 
 #endif

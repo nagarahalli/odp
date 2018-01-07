@@ -43,11 +43,10 @@ static int sysfs_get_val(const char *fname, uint64_t *val)
 	return 0;
 }
 
-int sysfs_stats(pktio_entry_t *pktio_entry,
+int sysfs_stats(const char *dev,
 		odp_pktio_stats_t *stats)
 {
 	char fname[256];
-	const char *dev = pktio_entry->s.name;
 	int ret = 0;
 
 	sprintf(fname, "/sys/class/net/%s/statistics/rx_bytes", dev);

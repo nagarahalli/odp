@@ -929,7 +929,7 @@ static int netmap_stats(pktio_entry_t *pktio_entry,
 		return 0;
 	}
 
-	return sock_stats_fd(pktio_entry,
+	return sock_stats_fd(pktio_entry, pkt_nm->if_name,
 			     stats, pkt_nm->sockfd);
 }
 
@@ -943,7 +943,9 @@ static int netmap_stats_reset(pktio_entry_t *pktio_entry)
 		return 0;
 	}
 
-	return sock_stats_reset_fd(pktio_entry, pkt_nm->sockfd);
+	return sock_stats_reset_fd(pktio_entry,
+				   pkt_nm->if_name,
+				   pkt_nm->sockfd);
 }
 
 static void netmap_print(pktio_entry_t *pktio_entry)

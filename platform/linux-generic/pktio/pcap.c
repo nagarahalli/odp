@@ -33,7 +33,7 @@
  *   loops   the number of times to iterate through the input file, set
  *           to 0 to loop indefinitely. The default value is 1.
  *
- * The total length of the string is limited by PKTIO_NAME_LEN.
+ * The total length of the string is limited by ODP_CONFIG_PKTIO_NAME_LEN.
  */
 
 #include <odp_posix_extensions.h>
@@ -58,7 +58,7 @@ static int _pcapif_parse_devname(pktio_ops_pcap_data_t *pcap,
 				 const char *devname)
 {
 	char *tok;
-	char in[PKTIO_NAME_LEN];
+	char in[ODP_CONFIG_PKTIO_NAME_LEN];
 
 	if (strncmp(devname, "pcap:", 5) != 0)
 		return -1;

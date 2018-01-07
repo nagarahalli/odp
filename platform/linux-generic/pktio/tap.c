@@ -112,6 +112,9 @@ static int tap_pktio_open(odp_pktio_t id ODP_UNUSED,
 	tap->fd = -1;
 	tap->skfd = -1;
 
+	/* Length check is already done in pkt IO common code */
+	strncpy(tap->name, devname, strlen(devname));
+
 	fd = open("/dev/net/tun", O_RDWR);
 	if (fd < 0) {
 		__odp_errno = errno;
@@ -192,7 +195,7 @@ static int tap_pktio_start(pktio_entry_t *pktio_entry)
 
 	odp_memset(&ifr, 0, sizeof(ifr));
 	snprintf(ifr.ifr_name, IF_NAMESIZE, "%s",
-		 (char *)pktio_entry->s.name + 4);
+		 (char *)tap->name + 4);
 
 		/* Up interface by default. */
 	if (ioctl(tap->skfd, SIOCGIFFLAGS, &ifr) < 0) {
@@ -223,7 +226,7 @@ static int tap_pktio_stop(pktio_entry_t *pktio_entry)
 
 	odp_memset(&ifr, 0, sizeof(ifr));
 	snprintf(ifr.ifr_name, IF_NAMESIZE, "%s",
-		 (char *)pktio_entry->s.name + 4);
+		 (char *)tap->name + 4);
 
 		/* Up interface by default. */
 	if (ioctl(tap->skfd, SIOCGIFFLAGS, &ifr) < 0) {
@@ -408,7 +411,7 @@ static uint32_t tap_mtu_get(pktio_entry_t *pktio_entry)
 	uint32_t ret;
 	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 
-	ret =  mtu_get_fd(tap->skfd, pktio_entry->s.name + 4);
+	ret =  mtu_get_fd(tap->skfd, tap->name + 4);
 	if (ret > 0)
 		tap->mtu = ret;
 
@@ -421,14 +424,14 @@ static int tap_promisc_mode_set(pktio_entry_t *pktio_entry,
 	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 
 	return promisc_mode_set_fd(tap->skfd,
-				   pktio_entry->s.name + 4, enable);
+				   tap->name + 4, enable);
 }
 
 static int tap_promisc_mode_get(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 
-	return promisc_mode_get_fd(tap->skfd, pktio_entry->s.name + 4);
+	return promisc_mode_get_fd(tap->skfd, tap->name + 4);
 }
 
 static int tap_mac_addr_get(pktio_entry_t *pktio_entry, void *mac_addr)
@@ -445,7 +448,7 @@ static int tap_mac_addr_set(pktio_entry_t *pktio_entry, const void *mac_addr)
 
 	memcpy(tap->if_mac, mac_addr, ETH_ALEN);
 
-	return mac_addr_set_fd(tap->fd, (char *)pktio_entry->s.name + 4,
+	return mac_addr_set_fd(tap->fd, (char *)tap->name + 4,
 			       tap->if_mac);
 }
 
@@ -453,7 +456,7 @@ static int tap_link_status(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_tap_data_t *tap = pktio_entry->s.ops_data;
 
-	return link_status_fd(tap->skfd, pktio_entry->s.name + 4);
+	return link_status_fd(tap->skfd, tap->name + 4);
 }
 
 static int tap_capability(pktio_entry_t *pktio_entry ODP_UNUSED,

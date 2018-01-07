@@ -70,7 +70,7 @@ static int _ipc_master_start(pktio_entry_t *pktio_entry)
 
 	odp_atomic_store_u32(&pkt_ipc->ready, 1);
 
-	IPC_ODP_DBG("%s started.\n",  pktio_entry->s.name);
+	IPC_ODP_DBG("%s started.\n",  pkt_ipc->name);
 	return 0;
 }
 
@@ -249,7 +249,7 @@ static int _ipc_slave_start(pktio_entry_t *pktio_entry)
 	char dev[ODP_POOL_NAME_LEN];
 	int pid;
 
-	if (sscanf(pktio_entry->s.name, "ipc:%d:%s", &pid, tail) != 2) {
+	if (sscanf(pkt_ipc->name, "ipc:%d:%s", &pid, tail) != 2) {
 		ODP_ERR("wrong pktio name\n");
 		return -1;
 	}
@@ -314,7 +314,7 @@ static int _ipc_slave_start(pktio_entry_t *pktio_entry)
 	odp_atomic_store_u32(&pkt_ipc->ready, 1);
 	pinfo->slave.init_done = 1;
 
-	ODP_DBG("%s started.\n",  pktio_entry->s.name);
+	ODP_DBG("%s started.\n",  pkt_ipc->name);
 	return 0;
 
 free_s_prod:
@@ -359,6 +359,9 @@ static int ipc_pktio_open(odp_pktio_t id ODP_UNUSED,
 
 	pkt_ipc = pktio_entry->s.ops_data;
 	memset(pkt_ipc, 0, sizeof(*pkt_ipc));
+
+	/* Length check is already done in pkt IO common code */
+	strncpy(pkt_ipc->name, dev, strlen(dev));
 
 	odp_atomic_init_u32(&pkt_ipc->ready, 0);
 
@@ -724,7 +727,7 @@ static int ipc_start(pktio_entry_t *pktio_entry)
 	uint32_t ready = odp_atomic_load_u32(&pkt_ipc->ready);
 
 	if (ready) {
-		ODP_ABORT("%s Already started\n", pktio_entry->s.name);
+		ODP_ABORT("%s Already started\n", pkt_ipc->name);
 		return -1;
 	}
 
@@ -765,7 +768,7 @@ static int ipc_close(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_ipc_data_t *pkt_ipc = pktio_entry->s.ops_data;
 	char ipc_shm_name[ODP_POOL_NAME_LEN + sizeof("_m_prod")];
-	char *dev = pktio_entry->s.name;
+	char *dev = pkt_ipc->name;
 	char name[ODP_POOL_NAME_LEN];
 	char tail[ODP_POOL_NAME_LEN];
 	int pid = 0;

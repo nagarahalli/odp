@@ -20,6 +20,7 @@ typedef struct {
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 	odp_ticketlock_t rx_lock; /**< RX lock */
 	odp_ticketlock_t tx_lock; /**< TX lock */
+	char name[ODP_CONFIG_PKTIO_NAME_LEN]; /**< pkt IO name */
 } pktio_ops_tap_data_t;
 
 #endif
