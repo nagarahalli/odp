@@ -39,6 +39,11 @@ extern "C" {
 #define ODP_CONFIG_PKTIO_ENTRIES 64
 
 /*
+ * Maximum length of the packet IO name.
+ */
+#define ODP_CONFIG_PKTIO_NAME_LEN 256
+
+/*
  * Minimum buffer alignment
  *
  * This defines the minimum supported buffer alignment. Requests for values

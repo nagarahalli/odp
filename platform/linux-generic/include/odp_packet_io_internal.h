@@ -36,8 +36,6 @@ extern "C" {
 typedef union pktio_entry_u pktio_entry_t;
 #include <odp_pktio_ops_subsystem.h>
 
-#define PKTIO_NAME_LEN 256
-
 #define PKTIN_INVALID  ((odp_pktin_queue_t) {ODP_PKTIO_INVALID, 0})
 #define PKTOUT_INVALID ((odp_pktout_queue_t) {ODP_PKTIO_INVALID, 0})
 
@@ -76,8 +74,8 @@ struct pktio_entry {
 		STATS_ETHTOOL,
 		STATS_UNSUPPORTED
 	} stats_type;
-	char name[PKTIO_NAME_LEN];	/**< name of pktio provided to
-					   pktio_open() */
+	char name[ODP_CONFIG_PKTIO_NAME_LEN]; /**< name of pktio provided to
+						   pktio_open() */
 
 	odp_pool_t pool;
 	odp_pktio_param_t param;

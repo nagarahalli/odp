@@ -168,10 +168,10 @@ static odp_pktio_t setup_pktio_entry(const char *name, odp_pool_t pool,
 	pktio_entry_t *pktio_entry;
 	pktio_ops_module_t *mod;
 
-	if (strlen(name) >= PKTIO_NAME_LEN - 1) {
+	if (strlen(name) >= ODP_CONFIG_PKTIO_NAME_LEN - 1) {
 		/* ioctl names limitation */
 		ODP_ERR("pktio name %s is too big, limit is %d bytes\n",
-			name, PKTIO_NAME_LEN - 1);
+			name, ODP_CONFIG_PKTIO_NAME_LEN - 1);
 		return ODP_PKTIO_INVALID;
 	}
 
