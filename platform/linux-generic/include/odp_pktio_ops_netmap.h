@@ -51,6 +51,7 @@ typedef struct {
 	unsigned char if_mac[ETH_ALEN]; /**< eth mac address */
 	char nm_name[IF_NAMESIZE + 7];  /**< netmap:<ifname> */
 	char if_name[IF_NAMESIZE];	/**< interface name used in ioctl */
+	odp_pktio_t handle;		/**< pkt IO handle */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
 	odp_pktin_mode_t pktin_mode;	  /**< pkt in mode */
 	odp_pktout_mode_t pktout_mode;	  /**< pkt out mode */

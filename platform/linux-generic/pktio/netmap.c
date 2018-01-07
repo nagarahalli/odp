@@ -348,7 +348,7 @@ static void netmap_init_capability(pktio_entry_t *pktio_entry)
  * @retval 0 on success
  * @retval <0 on failure
  */
-static int netmap_open(odp_pktio_t id ODP_UNUSED, pktio_entry_t *pktio_entry,
+static int netmap_open(odp_pktio_t id, pktio_entry_t *pktio_entry,
 		       const char *netdev, odp_pool_t pool)
 {
 	int i;
@@ -379,6 +379,7 @@ static int netmap_open(odp_pktio_t id ODP_UNUSED, pktio_entry_t *pktio_entry,
 	/* Init pktio entry */
 	memset(pkt_nm, 0, sizeof(*pkt_nm));
 	pkt_nm->sockfd = -1;
+	pkt_nm->handle = id;
 	pkt_nm->pool = pool;
 	pkt_nm->pktin_mode = pktio_entry->s.param.in_mode;
 	pkt_nm->pktout_mode = pktio_entry->s.param.out_mode;
@@ -514,7 +515,7 @@ static int netmap_start(pktio_entry_t *pktio_entry)
 
 		odp_pktin_queue_param_init(&param);
 		param.num_queues = 1;
-		if (odp_pktin_queue_config(pktio_entry->s.handle, &param))
+		if (odp_pktin_queue_config(pkt_nm->handle, &param))
 			return -1;
 	}
 	if (!pkt_nm->num_out_queues &&
@@ -523,7 +524,7 @@ static int netmap_start(pktio_entry_t *pktio_entry)
 
 		odp_pktout_queue_param_init(&param);
 		param.num_queues = 1;
-		if (odp_pktout_queue_config(pktio_entry->s.handle, &param))
+		if (odp_pktout_queue_config(pkt_nm->handle, &param))
 			return -1;
 	}
 
