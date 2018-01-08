@@ -361,7 +361,6 @@ static int netmap_open(odp_pktio_t id, pktio_entry_t *pktio_entry,
 	struct nm_desc *desc;
 	struct netmap_ring *ring;
 	odp_pktin_hash_proto_t hash_proto;
-	odp_pktio_stats_t cur_stats;
 
 	if (disable_pktio)
 		return -1;
@@ -432,7 +431,6 @@ static int netmap_open(odp_pktio_t id, pktio_entry_t *pktio_entry,
 		pkt_nm->capa.max_input_queues = 1;
 		pkt_nm->capa.set_op.op.promisc_mode = 0;
 		pkt_nm->mtu = buf_size;
-		pktio_entry->s.stats_type = STATS_UNSUPPORTED;
 		/* Set MAC address for virtual interface */
 		pkt_nm->if_mac[0] = 0x2;
 		pkt_nm->if_mac[1] = (tid >> 24) & 0xff;
@@ -476,17 +474,6 @@ static int netmap_open(odp_pktio_t id, pktio_entry_t *pktio_entry,
 	err = mac_addr_get_fd(sockfd, netdev, pkt_nm->if_mac);
 	if (err)
 		goto error;
-
-	/* netmap uses only ethtool to get statistics counters */
-	err = ethtool_stats_get_fd(pkt_nm->sockfd,
-				   pkt_nm->if_name, &cur_stats);
-	if (err) {
-		ODP_ERR("netmap pktio %s does not support statistics counters\n",
-			pkt_nm->if_name);
-		pktio_entry->s.stats_type = STATS_UNSUPPORTED;
-	} else {
-		pktio_entry->s.stats_type = STATS_ETHTOOL;
-	}
 
 	(void)netmap_stats_reset(pktio_entry);
 
@@ -925,28 +912,28 @@ static int netmap_stats(pktio_entry_t *pktio_entry,
 {
 	pktio_ops_netmap_data_t *pkt_nm = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(stats, 0, sizeof(*stats));
-		return 0;
-	}
+	memset(stats, 0, sizeof(*stats));
+	if (!pkt_nm->is_virtual)
+		return sock_stats_fd(pktio_entry,
+				     &pkt_nm->stats,
+				     pkt_nm->if_name,
+				     stats,
+				     pkt_nm->sockfd);
 
-	return sock_stats_fd(pktio_entry, pkt_nm->if_name,
-			     stats, pkt_nm->sockfd);
+	return 0;
 }
 
 static int netmap_stats_reset(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_netmap_data_t *pkt_nm = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(&pktio_entry->s.stats, 0,
-		       sizeof(odp_pktio_stats_t));
-		return 0;
-	}
+	if (!pkt_nm->is_virtual)
+		return sock_stats_reset_fd(pktio_entry,
+					   &pkt_nm->stats,
+					   pkt_nm->if_name,
+					   pkt_nm->sockfd);
 
-	return sock_stats_reset_fd(pktio_entry,
-				   pkt_nm->if_name,
-				   pkt_nm->sockfd);
+	return 0;
 }
 
 static void netmap_print(pktio_entry_t *pktio_entry)

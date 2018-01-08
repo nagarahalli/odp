@@ -140,7 +140,6 @@ static int sock_setup_pkt(pktio_entry_t *pktio_entry, const char *netdev,
 	struct sockaddr_ll sa_ll;
 	char shm_name[ODP_SHM_NAME_LEN];
 	pktio_ops_socket_data_t *pkt_sock = NULL;
-	odp_pktio_stats_t cur_stats;
 
 	if (pool == ODP_POOL_INVALID)
 		return -1;
@@ -201,22 +200,6 @@ static int sock_setup_pkt(pktio_entry_t *pktio_entry, const char *netdev,
 		__odp_errno = errno;
 		ODP_ERR("bind(to IF): %s\n", strerror(errno));
 		goto error;
-	}
-
-	err = ethtool_stats_get_fd(pkt_sock->sockfd,
-				   pkt_sock->name,
-				   &cur_stats);
-	if (err != 0) {
-		err = sysfs_stats(pkt_sock->name, &cur_stats);
-		if (err != 0) {
-			pktio_entry->s.stats_type = STATS_UNSUPPORTED;
-			ODP_DBG("pktio: %s unsupported stats\n",
-				pkt_sock->name);
-		} else {
-		pktio_entry->s.stats_type = STATS_SYSFS;
-		}
-	} else {
-		pktio_entry->s.stats_type = STATS_ETHTOOL;
 	}
 
 	err = sock_stats_reset(pktio_entry);
@@ -494,12 +477,8 @@ static int sock_stats(pktio_entry_t *pktio_entry,
 {
 	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(stats, 0, sizeof(*stats));
-		return 0;
-	}
-
 	return sock_stats_fd(pktio_entry,
+			     &pkt_sock->stats,
 			     pkt_sock->name,
 			     stats,
 			     pkt_sock->sockfd);
@@ -509,13 +488,8 @@ static int sock_stats_reset(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_socket_data_t *pkt_sock = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(&pktio_entry->s.stats, 0,
-		       sizeof(odp_pktio_stats_t));
-		return 0;
-	}
-
 	return sock_stats_reset_fd(pktio_entry,
+				   &pkt_sock->stats,
 				   pkt_sock->name,
 				   pkt_sock->sockfd);
 }

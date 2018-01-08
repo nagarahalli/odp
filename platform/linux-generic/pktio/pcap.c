@@ -268,7 +268,7 @@ static int pcapif_recv_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 			break;
 		}
 
-		pktio_entry->s.stats.in_octets += pkt_hdr->frame_len;
+		pcap->stats.in_octets += pkt_hdr->frame_len;
 
 		packet_set_ts(pkt_hdr, ts);
 
@@ -276,7 +276,7 @@ static int pcapif_recv_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 		i++;
 	}
-	pktio_entry->s.stats.in_ucast_pkts += i;
+	pcap->stats.in_ucast_pkts += i;
 
 	odp_ticketlock_unlock(&pcap->rx_lock);
 
@@ -325,11 +325,11 @@ static int pcapif_send_pkt(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		if (_pcapif_dump_pkt(pcap, pkts[i]) != 0)
 			break;
 
-		pktio_entry->s.stats.out_octets += pkt_len;
+		pcap->stats.out_octets += pkt_len;
 		odp_packet_free(pkts[i]);
 	}
 
-	pktio_entry->s.stats.out_ucast_pkts += i;
+	pcap->stats.out_ucast_pkts += i;
 
 	odp_ticketlock_unlock(&pcap->tx_lock);
 
@@ -427,14 +427,18 @@ static int pcapif_promisc_mode_get(pktio_entry_t *pktio_entry)
 
 static int pcapif_stats_reset(pktio_entry_t *pktio_entry)
 {
-	memset(&pktio_entry->s.stats, 0, sizeof(odp_pktio_stats_t));
+	pktio_ops_pcap_data_t *pcap = pktio_entry->s.ops_data;
+
+	memset(&pcap->stats, 0, sizeof(odp_pktio_stats_t));
 	return 0;
 }
 
 static int pcapif_stats(pktio_entry_t *pktio_entry,
 			odp_pktio_stats_t *stats)
 {
-	memcpy(stats, &pktio_entry->s.stats, sizeof(odp_pktio_stats_t));
+	pktio_ops_pcap_data_t *pcap = pktio_entry->s.ops_data;
+
+	memcpy(stats, &pcap->stats, sizeof(odp_pktio_stats_t));
 	return 0;
 }
 

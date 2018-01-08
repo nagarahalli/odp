@@ -505,7 +505,6 @@ static int sock_mmap_open(odp_pktio_t id ODP_UNUSED,
 {
 	int if_idx;
 	int ret = 0;
-	odp_pktio_stats_t cur_stats;
 	pktio_ops_socket_mmap_data_t *pkt_sock;
 	int fanout = 1;
 
@@ -574,23 +573,8 @@ static int sock_mmap_open(odp_pktio_t id ODP_UNUSED,
 			goto error;
 	}
 
-	ret = ethtool_stats_get_fd(pkt_sock->sockfd,
-				   pkt_sock->name,
-				   &cur_stats);
-	if (ret != 0) {
-		ret = sysfs_stats(pkt_sock->name, &cur_stats);
-		if (ret != 0) {
-			pktio_entry->s.stats_type = STATS_UNSUPPORTED;
-			ODP_DBG("pktio: %s unsupported stats\n",
-				pkt_sock->name);
-		} else {
-			pktio_entry->s.stats_type = STATS_SYSFS;
-		}
-	} else {
-		pktio_entry->s.stats_type = STATS_ETHTOOL;
-	}
-
 	ret = sock_stats_reset_fd(pktio_entry,
+				  &pkt_sock->stats,
 				  pkt_sock->name,
 				  pkt_sock->sockfd);
 	if (ret != 0)
@@ -704,12 +688,8 @@ static int sock_mmap_stats(pktio_entry_t *pktio_entry,
 {
 	pktio_ops_socket_mmap_data_t *const pkt_sock = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(stats, 0, sizeof(*stats));
-		return 0;
-	}
-
 	return sock_stats_fd(pktio_entry,
+			     &pkt_sock->stats,
 			     pkt_sock->name,
 			     stats, pkt_sock->sockfd);
 }
@@ -718,13 +698,8 @@ static int sock_mmap_stats_reset(pktio_entry_t *pktio_entry)
 {
 	pktio_ops_socket_mmap_data_t *const pkt_sock = pktio_entry->s.ops_data;
 
-	if (pktio_entry->s.stats_type == STATS_UNSUPPORTED) {
-		memset(&pktio_entry->s.stats, 0,
-		       sizeof(odp_pktio_stats_t));
-		return 0;
-	}
-
 	return sock_stats_reset_fd(pktio_entry,
+				   &pkt_sock->stats,
 				   pkt_sock->name,
 				   pkt_sock->sockfd);
 }

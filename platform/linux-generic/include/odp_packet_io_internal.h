@@ -68,12 +68,9 @@ struct pktio_entry {
 	} state;
 	odp_pktio_config_t config;	/**< Device configuration */
 	classifier_t cls;		/**< classifier linked with this pktio*/
-	odp_pktio_stats_t stats;	/**< statistic counters for pktio */
-	enum {
-		STATS_SYSFS = 0,
-		STATS_ETHTOOL,
-		STATS_UNSUPPORTED
-	} stats_type;
+	uint64_t in_errors;		/**< Error pkts */
+	uint64_t in_errors_octets;
+	uint64_t in_discards;
 	char name[ODP_CONFIG_PKTIO_NAME_LEN]; /**< name of pktio provided to
 						   pktio_open() */
 

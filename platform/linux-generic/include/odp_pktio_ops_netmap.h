@@ -69,6 +69,7 @@ typedef struct {
 	netmap_ring_t rx_desc_ring[PKTIO_MAX_QUEUES];
 	/** mapping of pktout queues to netmap tx descriptors */
 	netmap_ring_t tx_desc_ring[PKTIO_MAX_QUEUES];
+	odp_pktio_stats_t stats;	/**< Stats before reset */
 } pktio_ops_netmap_data_t;
 
 #endif

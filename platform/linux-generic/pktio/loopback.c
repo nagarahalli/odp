@@ -111,11 +111,11 @@ static int loopback_recv(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 
 		packet_set_ts(pkt_hdr, ts);
 
-		pktio_entry->s.stats.in_octets += odp_packet_len(pkt);
+		pkt_lbk->stats.in_octets += odp_packet_len(pkt);
 		pkts[num_rx++] = pkt;
 	}
 
-	pktio_entry->s.stats.in_ucast_pkts += num_rx;
+	pkt_lbk->stats.in_ucast_pkts += num_rx;
 
 	odp_ticketlock_unlock(&pkt_lbk->rx_lock);
 
@@ -162,8 +162,8 @@ static int loopback_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 	ret = queue_fn->enq_multi(queue, hdr_tbl, len);
 
 	if (ret > 0) {
-		pktio_entry->s.stats.out_ucast_pkts += ret;
-		pktio_entry->s.stats.out_octets += bytes;
+		pkt_lbk->stats.out_ucast_pkts += ret;
+		pkt_lbk->stats.out_octets += bytes;
 	} else {
 		ODP_DBG("queue enqueue failed %i\n", ret);
 		ret = -1;
@@ -241,13 +241,17 @@ static int loopback_promisc_mode_get(pktio_entry_t *pktio_entry)
 static int loopback_stats(pktio_entry_t *pktio_entry,
 			  odp_pktio_stats_t *stats)
 {
-	memcpy(stats, &pktio_entry->s.stats, sizeof(odp_pktio_stats_t));
+	pktio_ops_loopback_data_t *pkt_lbk = pktio_entry->s.ops_data;
+
+	memcpy(stats, &pkt_lbk->stats, sizeof(odp_pktio_stats_t));
 	return 0;
 }
 
 static int loopback_stats_reset(pktio_entry_t *pktio_entry ODP_UNUSED)
 {
-	memset(&pktio_entry->s.stats, 0, sizeof(odp_pktio_stats_t));
+	pktio_ops_loopback_data_t *pkt_lbk = pktio_entry->s.ops_data;
+
+	memset(&pkt_lbk->stats, 0, sizeof(odp_pktio_stats_t));
 	return 0;
 }
 

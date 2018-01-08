@@ -192,7 +192,6 @@ static odp_pktio_t setup_pktio_entry(const char *name, odp_pool_t pool,
 	pktio_entry->s.pool = pool;
 	memcpy(&pktio_entry->s.param, param, sizeof(odp_pktio_param_t));
 	pktio_entry->s.handle = hdl;
-	pktio_entry->s.stats_type = STATS_UNSUPPORTED;
 
 	odp_pktio_config_init(&pktio_entry->s.config);
 
@@ -714,7 +713,7 @@ int pktin_poll_one(int pktio_index,
 				failed++;
 				odp_packet_free(packets[i]);
 				/* Count error octets */
-				entry->s.stats.in_octets +=
+				entry->s.in_errors_octets +=
 					odp_packet_len(packets[i]);
 				continue;
 			}
@@ -726,7 +725,7 @@ int pktin_poll_one(int pktio_index,
 				if (new_pkt == ODP_PACKET_INVALID) {
 					failed++;
 					/* Count error octets */
-					entry->s.stats.in_octets +=
+					entry->s.in_errors_octets +=
 						odp_packet_len(packets[i]);
 					continue;
 				}
@@ -750,7 +749,7 @@ int pktin_poll_one(int pktio_index,
 			if (queue_fn->enq_multi(queue, &buf_hdr, 1) < 0) {
 				/* Queue full? */
 				odp_packet_free(packets[i]);
-				__atomic_fetch_add(&entry->s.stats.in_discards,
+				__atomic_fetch_add(&entry->s.in_discards,
 						   1,
 						   __ATOMIC_RELAXED);
 			}
@@ -759,7 +758,7 @@ int pktin_poll_one(int pktio_index,
 		}
 	}
 
-	entry->s.stats.in_errors += failed;
+	entry->s.in_errors += failed;
 
 	return num_rx;
 }
@@ -1266,8 +1265,9 @@ int odp_pktio_stats(odp_pktio_t pktio,
 		ret = entry->s.ops->stats(entry, stats);
 
 	/* Subtract the errors due to classification */
-	stats->in_ucast_pkts -= entry->s.stats.in_errors;
-	stats->in_octets -= entry->s.stats.in_octets;
+	stats->in_ucast_pkts -= entry->s.in_errors;
+	stats->in_octets -= entry->s.in_errors_octets;
+	stats->in_discards -= entry->s.in_discards;
 
 	unlock_entry(entry);
 
@@ -1295,6 +1295,11 @@ int odp_pktio_stats_reset(odp_pktio_t pktio)
 
 	if (entry->s.ops->stats)
 		ret = entry->s.ops->stats_reset(entry);
+
+	entry->s.in_errors = 0;
+	entry->s.in_errors_octets = 0;
+	entry->s.in_discards = 0;
+
 	unlock_entry(entry);
 
 	return ret;
@@ -1745,7 +1750,7 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 				failed++;
 				odp_packet_free(packets[i]);
 				/* Count error octets */
-				entry->s.stats.in_octets +=
+				entry->s.in_errors_octets +=
 					odp_packet_len(packets[i]);
 				continue;
 			}
@@ -1757,7 +1762,7 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 				if (new_pkt == ODP_PACKET_INVALID) {
 					failed++;
 					/* Count error octets */
-					entry->s.stats.in_octets +=
+					entry->s.in_errors_octets +=
 						odp_packet_len(packets[i]);
 					continue;
 				}
@@ -1781,7 +1786,7 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 	}
 
 	nb_rx = success;
-	entry->s.stats.in_errors += failed;
+	entry->s.in_errors += failed;
 
 	return nb_rx;
 }
