@@ -140,7 +140,7 @@ static int loopback_send(pktio_entry_t *pktio_entry, int index ODP_UNUSED,
 		bytes += odp_packet_len(pkt_tbl[i]);
 	}
 
-	if (pktio_entry->s.config.outbound_ipsec)
+	if (pkt_lbk->outbound_ipsec)
 		for (i = 0; i < len; ++i) {
 			odp_buffer_t buf = buf_from_buf_hdr(hdr_tbl[i]);
 			odp_ipsec_packet_result_t result;
@@ -200,6 +200,7 @@ static int loopback_config(pktio_entry_t *pktio_entry,
 
 	/* Copy the configuration into pkt I/O structure. */
 	pkt_lbk->pktin_cfg = p->pktin;
+	pkt_lbk->outbound_ipsec = p->outbound_ipsec;
 
 	return 0;
 }

@@ -13,6 +13,7 @@ typedef struct {
 	odp_queue_t loopq;  /**< loopback queue for "loop" device */
 	odp_bool_t promisc; /**< promiscuous mode state */
 	odp_pktin_config_opt_t pktin_cfg; /**< pkt in config */
+	odp_bool_t outbound_ipsec; /**< Outbound IPsec config */
 	odp_ticketlock_t rx_lock; /**< RX lock */
 	odp_ticketlock_t tx_lock; /**< TX lock */
 	odp_pktio_stats_t stats;  /**< Stats for loopback pkt IO */
