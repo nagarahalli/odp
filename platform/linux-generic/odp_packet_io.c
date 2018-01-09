@@ -733,15 +733,17 @@ int pktin_poll_one(int pktio_index,
 				pkt_hdr = odp_packet_hdr(packets[i]);
 			}
 			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
-		} else {
+		} else if (entry->s.config.inbound_ipsec == 0) {
 			packet_parse_layer(pkt_hdr,
 					   entry->s.config.parser.layer);
 		}
 
+#if 0
 		/* Try IPsec inline processing */
 		if (entry->s.config.inbound_ipsec &&
 		    odp_packet_has_ipsec(packets[i]))
 			_odp_ipsec_try_inline(packets[i]);
+#endif
 
 		if (odp_unlikely(pkt_hdr->p.input_flags.dst_queue)) {
 			queue = pkt_hdr->dst_queue;
@@ -1772,15 +1774,17 @@ int odp_pktin_recv(odp_pktin_queue_t queue, odp_packet_t packets[], int num)
 			copy_packet_cls_metadata(&parsed_hdr, pkt_hdr);
 			if (success != i)
 				packets[success] = packets[i];
-		} else {
+		} else if (entry->s.config.inbound_ipsec == 0) {
 			packet_parse_layer(pkt_hdr,
 					   entry->s.config.parser.layer);
 		}
 
+#if 0
 		/* Try IPsec inline processing */
 		if (entry->s.config.inbound_ipsec &&
 		    odp_packet_has_ipsec(packets[success]))
 			_odp_ipsec_try_inline(packets[success]);
+#endif
 
 		++success;
 	}
